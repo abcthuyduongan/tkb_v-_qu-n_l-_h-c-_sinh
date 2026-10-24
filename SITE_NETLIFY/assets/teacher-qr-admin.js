@@ -15,5 +15,5 @@ $('previewTeacherQr').onclick=async()=>{const button=$('previewTeacherQr');butto
  $('printAllTeacherQr').disabled=!rows.length;
  }catch(e){$('teacherQrMessage').textContent=e.message;}finally{button.disabled=false;}};
 $('printAllTeacherQr').onclick=async()=>{try{await window.requireTkbAdmin();if(preparedYear!==$('qrSchoolYear').value.trim())throw Error('Xem trước lại danh sách.');document.body.classList.add('printing-teacher-qr');window.addEventListener('afterprint',()=>document.body.classList.remove('printing-teacher-qr'),{once:true});window.print();}catch(e){$('teacherQrMessage').textContent=e.message;}};
-sb.auth.onAuthStateChange((_event,session)=>{if(!session){sheet.innerHTML='';$('qrPreview').innerHTML='';$('printAllTeacherQr').disabled=true;document.body.classList.remove('printing-teacher-qr');}});
+(window.TkbAuth?.subscribe||((callback)=>sb.auth.onAuthStateChange(callback)))((_event,session)=>{if(!session){sheet.innerHTML='';$('qrPreview').innerHTML='';$('printAllTeacherQr').disabled=true;document.body.classList.remove('printing-teacher-qr');}});
 })();

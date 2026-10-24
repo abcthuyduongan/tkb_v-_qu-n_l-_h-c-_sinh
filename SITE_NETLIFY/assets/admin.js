@@ -93,7 +93,7 @@
   }
   function applyMetadata(meta){
     if(meta.schoolName)el('schoolNameInput').value=meta.schoolName;
-    if(meta.year)el('schoolYearInput').value=meta.year;
+    if(meta.year)el('schoolYearInput').value=canonicalYear(meta.year);
     el('semesterInput').value=`Học kỳ ${meta.semesterNo}`;
     el('versionNameInput').value=`Số ${meta.versionNo}`;
     if(meta.effectiveDate)el('effectiveDateInput').value=meta.effectiveDate;
@@ -141,13 +141,30 @@
     }catch(err){el('fileSummary').hidden=false;el('fileSummary').textContent='Không đọc được file: '+err.message}
   }
 
-  async function sessionCheck(){
-    const{data:{session}}=await sb.auth.getSession();setSessionUI(session);
-    sb.auth.onAuthStateChange((_event,session)=>setTimeout(()=>setSessionUI(session),0));
+  let authRevision=0,approvedUser='',checkedAt=0,pendingAuth=null,pendingUser='',currentUser='';
+  const subscribe=callback=>window.TkbAuth?.subscribe?window.TkbAuth.subscribe(callback):sb.auth.onAuthStateChange(callback);
+  function authGate(text,retry=false){el('adminAuthGate').hidden=false;el('adminAuthText').textContent=text;el('retryAdminSession').hidden=!retry;el('returnToPortal').hidden=!text;}
+  function clearWorkspace(){el('adminWorkspace').hidden=true;el('adminWorkspace').inert=false;el('versionsList').innerHTML='';parsedRows=[];parsedAssignments=[];validationErrors=[];el('fileInput').value='';summarize();}
+  window.requireTkbAdmin=async()=>{const{data,error}=await sb.rpc('is_tkb_admin');if(error)throw Error('Chưa kiểm tra được quyền quản trị. Vui lòng thử lại.');if(data!==true)throw Object.assign(Error('Tài khoản không có quyền quản trị.'),{permissionDenied:true});return true;};
+  async function setSessionUI(session,{force=false}={}){
+    const uid=session?.user?.id||'';
+    if(uid!==currentUser){authRevision++;approvedUser='';checkedAt=0;clearWorkspace();currentUser=uid;}
+    el('logoutBtn').hidden=!session;
+    if(!session){authRevision++;el('adminAuthGate').hidden=true;el('loginCard').hidden=false;return;}
+    el('loginCard').hidden=true;
+    if(session.user.app_metadata?.force_password_change){clearWorkspace();authGate('Cần đặt mật khẩu riêng tại ứng dụng trước khi quản lý TKB.');return;}
+    if(!force&&approvedUser===uid&&Date.now()-checkedAt<30000)return;
+    if(pendingAuth&&pendingUser===uid)return pendingAuth;
+    const revision=++authRevision;pendingUser=uid;if(approvedUser!==uid)authGate('Đang mở quản lý TKB…');
+    const request=(async()=>{try{
+      await window.requireTkbAdmin();if(revision!==authRevision)return;
+      const first=approvedUser!==uid;approvedUser=uid;checkedAt=Date.now();el('adminAuthGate').hidden=true;el('adminWorkspace').inert=false;el('adminWorkspace').hidden=false;if(first)loadVersions();
+    }catch(error){if(revision!==authRevision)return;if(error.permissionDenied){approvedUser='';clearWorkspace();authGate(error.message);}else{el('adminWorkspace').inert=true;authGate(error.message,true);}}
+    finally{if(pendingAuth===request)pendingAuth=null;}})();pendingAuth=request;return request;
   }
-  let authRevision=0;
-  window.requireTkbAdmin=async()=>{const{data,error}=await sb.rpc('is_tkb_admin');if(error||data!==true)throw Error('Tài khoản không có quyền quản trị.');return true;};
-  async function setSessionUI(session){const revision=++authRevision;el('adminWorkspace').hidden=true;el('loginCard').hidden=false;el('logoutBtn').hidden=!session;if(!session)return;try{await window.requireTkbAdmin();if(revision!==authRevision)return;el('loginCard').hidden=true;el('adminWorkspace').hidden=false;loadVersions();}catch(e){msg(el('loginMessage'),e.message,'error');}}
+  async function restoreAdminSession(force=false){try{await window.TkbAuth?.ready;const result=await sb.auth.getSession();if(result.error)throw result.error;await setSessionUI(result.data?.session||null,{force});}catch{el('loginCard').hidden=true;authGate('Chưa kiểm tra được phiên làm việc. Vui lòng thử lại.',true);}}
+  function sessionCheck(){restoreAdminSession();subscribe((_event,session)=>setTimeout(()=>setSessionUI(session),0));}
+  el('retryAdminSession').onclick=()=>restoreAdminSession(true);
   el('loginForm').addEventListener('submit',async e=>{
     e.preventDefault();msg(el('loginMessage'),'Đang đăng nhập…');
     const{error}=await sb.auth.signInWithPassword({email:window.TranPhuTeacherIdentity.loginEmail(el('emailInput').value),password:el('passwordInput').value});
@@ -207,14 +224,17 @@
     const action=version.is_active&&status!=='synced'?'<small>Mở Quản trị → Đồng bộ TKB, đối chiếu tài khoản và quyền rồi áp dụng.</small><a class="secondary-btn" href="/?page=admin#syncTkb" target="_top">Đối chiếu phân công</a>':'';
     return `<div class="version-sync" data-sync-status="${escapeHtml(status)}" role="status"><small><strong>${escapeHtml(text)}</strong>${state?.updated_at&&!readError?' · '+escapeHtml(new Date(state.updated_at).toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh'})):''}</small>${reason?`<small>${escapeHtml(reason)}</small>`:''}${action}</div>`;
   }
-  async function loadYearPreflight(revision){
+  async function loadYearPreflight(revision,versions=[]){
     let notice=el('schoolYearPreflight');if(!notice){notice=document.createElement('div');notice.id='schoolYearPreflight';notice.className='form-message';el('versionsList').insertAdjacentElement('beforebegin',notice);}
     const{data,error}=await sb.rpc('v4_school_year_preflight');if(revision!==versionsRevision)return;
     notice.hidden=!error&&!data?.invalid_rows;
     if(error){notice.className='form-message error';notice.textContent='Chưa kiểm kê được năm học. Kiểm tra kết nối và bản cập nhật cơ sở dữ liệu trước khi chuyển dữ liệu cũ.';return;}
-    notice.className='form-message error';
     const invalid=(data?.inventory||[]).filter(row=>!row.canonical);
-    notice.innerHTML=`<strong>Cần đối chiếu ${Number(data?.invalid_rows||0)} dòng có năm học chưa đúng chuẩn.</strong><details><summary>Xem kết quả kiểm kê</summary><ul>${invalid.map(row=>`<li>${escapeHtml(row.table)}: ${escapeHtml(row.school_year??'(trống)')} · ${Number(row.row_count)} dòng${row.canonical_candidate?' → '+escapeHtml(row.canonical_candidate):''}</li>`).join('')}</ul>${data?.variants?.length?'<p>Có nhiều cách viết cùng một năm học; cần đối chiếu khóa và lịch sử trước khi hợp nhất.</p>':''}<p>Kết quả chỉ đọc. Chưa thay đổi năm học hoặc lịch sử học sinh.</p></details>`;
+    const current=versions.find(v=>v.is_active&&v.status==='published'),legacy=versions.filter(v=>!window.TranPhuSchoolYear.isCanonical(v.school_year));
+    const legacyOnly=!!current&&window.TranPhuSchoolYear.isCanonical(current.school_year)&&invalid.every(row=>row.table==='tkb_versions')&&legacy.length===Number(data?.invalid_rows||0)&&legacy.every(v=>!v.is_active);
+    notice.className='form-message '+(legacyOnly?'warning':'error');
+    const heading=legacyOnly?`TKB đang dùng có năm học đúng chuẩn. Có ${legacy.length} phiên bản cũ cần đối chiếu.`:`Cần đối chiếu ${Number(data?.invalid_rows||0)} dòng có năm học chưa đúng chuẩn.`;
+    notice.innerHTML=`<strong>${heading}</strong><details><summary>Xem kết quả kiểm kê</summary><ul>${invalid.map(row=>`<li>${escapeHtml(row.table)}: ${escapeHtml(row.school_year??'(trống)')} · ${Number(row.row_count)} dòng${row.canonical_candidate?' → '+escapeHtml(row.canonical_candidate):''}</li>`).join('')}</ul>${data?.variants?.length?'<p>Các cách viết năm học đang khác nhau. Không tự gộp phiên bản hoặc lịch sử học sinh.</p>':''}<p>Kết quả chỉ đọc. Chưa thay đổi năm học hoặc lịch sử học sinh.</p></details>`;
   }
   async function loadVersions(){
     const revision=++versionsRevision;
@@ -225,8 +245,8 @@
     const sync=ids.length?await sb.from('v4_tkb_sync_state').select('version_id,status,reason,updated_at').in('version_id',ids):{data:[]};
     if(revision!==versionsRevision)return;
     const states=new Map((sync.data||[]).map(state=>[state.version_id,state]));
-    el('versionsList').innerHTML=versions.map(v=>`<div class="version-item" data-version-id="${escapeHtml(v.id)}"><div><strong>${escapeHtml(v.version_name||'Phiên bản')}</strong><small>${escapeHtml(v.school_year||'')} · ${escapeHtml(v.semester||'')} · áp dụng ${escapeHtml(v.effective_date||'—')}</small>${syncLabel(v,states.get(v.id),sync.error)}</div><div class="version-actions">${v.is_active?'<span class="badge active">Đang công bố</span>':`<button class="secondary-btn" data-activate="${escapeHtml(v.id)}">Kích hoạt</button>`}</div></div>`).join('')||'<div class="muted">Chưa có phiên bản nào.</div>';
-    await loadYearPreflight(revision);
+    el('versionsList').innerHTML=versions.map(v=>`<div class="version-item" data-version-id="${escapeHtml(v.id)}"><div><strong>${escapeHtml(v.version_name||'Phiên bản')}</strong><small>${escapeHtml(v.school_year||'')} · ${escapeHtml(v.semester||'')} · áp dụng ${escapeHtml(v.effective_date||'—')}</small>${syncLabel(v,states.get(v.id),sync.error)}</div><div class="version-actions">${v.is_active?'<span class="badge active">Đang công bố</span>':`<button class="secondary-btn" data-activate="${escapeHtml(v.id)}" ${window.TranPhuSchoolYear.isCanonical(v.school_year)?'':'disabled title="Cần đối chiếu năm học trước khi kích hoạt"'}>${window.TranPhuSchoolYear.isCanonical(v.school_year)?'Kích hoạt':'Cần đối chiếu năm học'}</button>`}</div></div>`).join('')||'<div class="muted">Chưa có phiên bản nào.</div>';
+    await loadYearPreflight(revision,versions);
   }
   el('refreshVersionsBtn').addEventListener('click',loadVersions);
   el('versionsList').addEventListener('click',async e=>{

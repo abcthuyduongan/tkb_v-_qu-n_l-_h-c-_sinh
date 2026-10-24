@@ -20,7 +20,7 @@
     <div class="top-actions"><a class="ghost-link" href="/">Xem trang công khai</a><button id="logoutBtn" class="icon-btn" type="button" hidden>Đăng xuất</button></div>
   </header>
   <main class="admin-shell">
-    <section id="loginCard" class="admin-card auth-card">
+    <section id="adminAuthGate" class="admin-card auth-card" role="status" aria-live="polite"><p id="adminAuthText">Đang mở quản lý TKB…</p><button id="retryAdminSession" type="button" class="secondary-btn" hidden>Thử lại</button><a id="returnToPortal" href="/" hidden>Về ứng dụng</a></section><section id="loginCard" class="admin-card auth-card" hidden>
       <div class="section-kicker">Đăng nhập quản trị</div><h1>Cập nhật thời khóa biểu</h1>
 
       <form id="loginForm" class="stack-form">
@@ -35,7 +35,7 @@
           <div class="section-kicker">Bước 1</div><h2>Thông tin đợt TKB</h2>
           <div class="form-grid">
             <label class="field span-2"><span>Tên trường</span><input id="schoolNameInput" value="TH & THCS TRẦN PHÚ"></label>
-            <label class="field"><span>Năm học</span><input id="schoolYearInput" value="2026 - 2027"></label>
+            <label class="field"><span>Năm học</span><input id="schoolYearInput" value="2026-2027"></label>
             <label class="field"><span>Học kỳ</span><input id="semesterInput" value="Học kỳ 1"></label>
             <label class="field"><span>Tên phiên bản</span><input id="versionNameInput" value="Số 1"></label>
             <label class="field"><span>Ngày áp dụng</span><input id="effectiveDateInput" type="date" value="2026-09-05"></label>
@@ -70,11 +70,11 @@
   <script src="/vendor/qrcode.js"></script>
   <script src="/assets/pdf-qr.js"></script>
   <script src="/assets/ppct-model.js"></script>
-  <script src="/assets/teacher-identity.js?v=57"></script><script src="/assets/tkb-config.js"></script><script src="/assets/auth.js?v=46"></script><script src="/assets/tkb-integration.js?v=45"></script>
+  <script src="/assets/teacher-identity.js?v=57"></script><script src="/assets/tkb-config.js"></script><script src="/assets/auth.js?v=64"></script><script src="/assets/tkb-integration.js?v=45"></script>
   <script src="/assets/school-calendar.js?v=40"></script>
-  <script src="/assets/portal-dialogs.js?v=61" defer></script><script src="/assets/school-year.js?v=54"></script><script src="/assets/admin.js?v=54" defer></script>
-  <script src="/assets/plan-admin.js?v=40" defer></script>
-  <script src="/assets/calendar-admin.js?v=40" defer></script>
-  <script src="/assets/teacher-qr-admin.js?v=40" defer></script>
+  <script src="/assets/portal-dialogs.js?v=61" defer></script><script src="/assets/school-year.js?v=54"></script><script src="/assets/admin.js?v=64" defer></script>
+  <script src="/assets/plan-admin.js?v=64" defer></script>
+  <script src="/assets/calendar-admin.js?v=64" defer></script>
+  <script src="/assets/teacher-qr-admin.js?v=64" defer></script>
 </body>
 </html>

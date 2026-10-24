@@ -103,6 +103,7 @@
   }
 
   function setMode(mode,selectedId=null){
+    if(window.TkbPublicLookup&&!['class','teacher'].includes(mode)){mode='class';selectedId=null;}
     state.mode=mode;
     if(mode==='teaching')display='lesson';
     el('viewSelect').value=mode;el('entityField').hidden=mode==='pccm';
@@ -136,7 +137,7 @@
   }
   function applyQueryOrDefault(fallbackId=null){const q=new URL(location.href).searchParams,shared=window.TkbIntegration?.read()||{};let saved={};try{saved=JSON.parse(localStorage.getItem('tkb_view_preferences')||'{}');}catch(e){}
     const mode=['class','teacher','teaching','pccm','ppct','pdf'].includes(q.get('mode')||saved.mode)?q.get('mode')||saved.mode:'class';
-    display=saved.display==='lesson'?'lesson':'subject';week=automaticWeek();weekIsManual=false;el('lessonWeek').value=week;updateDisplayControls();const own=window.TkbAuth?.profile,ownRow=own&&state.entries.find(row=>row.teacher_code===own.teacher_code);
+    display=!window.TkbPublicLookup&&saved.display==='lesson'?'lesson':'subject';week=automaticWeek();weekIsManual=false;el('lessonWeek').value=week;updateDisplayControls();const own=window.TkbAuth?.profile,ownRow=own&&state.entries.find(row=>row.teacher_code===own.teacher_code);
     if(!q.has('mode')&&!q.has('id')&&ownRow)setMode('teacher',normalized(ownRow.teacher_name));else setMode(mode,q.get('id')||(mode==='class'?shared.classCode:null)||fallbackId||saved.id);}
   function remember(){try{localStorage.setItem('tkb_view_preferences',JSON.stringify({mode:state.mode,id:state.selected?.id,display,week}));}catch(e){}
  const integration=window.TkbIntegration;if(!integration)return;const row=rowsForSelected()[0];

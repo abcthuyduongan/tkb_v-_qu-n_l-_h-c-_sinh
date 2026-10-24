@@ -10,6 +10,7 @@ WHERE n.nspname='public' AND c.relkind='r' AND starts_with(c.relname,'v4_') ORDE
 SELECT CASE
  WHEN to_regclass('public.tkb_versions') IS NULL OR to_regclass('public.tkb_entries') IS NULL OR to_regclass('public.tkb_assignments') IS NULL OR to_regprocedure('public.is_tkb_admin()') IS NULL THEN 'STOP: thieu CSDL TKB goc; khong chay bo cai module.'
  WHEN NOT EXISTS(SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind='r' AND starts_with(c.relname,'v4_')) THEN 'CHUA_CO_MODULE: sau backup, dung 01_CAI_MODULE_MOI_TREN_CSDL_TKB.sql'
+ WHEN to_regprocedure('public.v4_daily_learning(text,text)') IS NOT NULL AND to_regprocedure('public.v4_lesson_handoffs(text,text,date,date,text)') IS NOT NULL AND to_regprocedure('public.v4_credentials_ready()') IS NOT NULL THEN 'DA_CO_DAU_MOC_21: doi chieu va backup; dung 05_CAP_NHAT_TU_21_LEN_23.sql neu chua tach quyen admin/giao vien. KHONG chay01.'
  WHEN to_regprocedure('public.v4_save_lesson_review(uuid,text)') IS NOT NULL AND to_regprocedure('public.v4_credentials_ready()') IS NOT NULL THEN 'DA_CO_DAU_MOC_20: doi chieu schema/RLS va backup; dung 02_CAP_NHAT_TU_20_LEN_21.sql'
  ELSE 'DA_CO_MODULE_MOT_PHAN: doi chieu cac buoc trong SQL/steps, KHONG chay lai 01.'
  END AS suggested_path;

@@ -27,5 +27,5 @@ $('saveSchoolCalendar').onclick=async()=>{
  }catch(e){message(e.message,'error');}finally{button.disabled=false;}
 };
 
-sb.auth.onAuthStateChange((_event,session)=>{if(session)setTimeout(load,0);});sb.auth.getSession().then(({data})=>{if(data.session)load();});render();
+let calendarAuthUser='';const onSession=session=>{const uid=session?.user?.id||'';if(uid===calendarAuthUser)return;calendarAuthUser=uid;if(uid)setTimeout(load,0);};(window.TkbAuth?.subscribe||((callback)=>sb.auth.onAuthStateChange(callback)))((_event,session)=>onSession(session));sb.auth.getSession().then(({data,error})=>{if(!error)onSession(data.session);});render();
 })();

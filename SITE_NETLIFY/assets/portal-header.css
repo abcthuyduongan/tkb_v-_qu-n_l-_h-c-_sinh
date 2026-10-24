@@ -1,5 +1,6 @@
 /* Portal chrome owns the header, title and navigation. Paper rules stay intact. */
 @media screen{
+ .session-gate{text-align:center}.session-gate .btn{margin:8px 4px 0}.session-gate .message{overflow-wrap:anywhere}
  .bar{position:relative;min-height:60px;padding:8px 20px;gap:12px;flex-wrap:nowrap;overflow:hidden;background:linear-gradient(105deg,#075cc2,#0869d9);color:#fff;box-shadow:none}
  .bar:after{content:"";pointer-events:none;position:absolute;width:48%;height:170%;right:-5%;top:-10%;transform:rotate(-16deg);background:#ffffff05}
  .bar>*{position:relative;z-index:1}
@@ -81,3 +82,5 @@
  .current-lesson-heading .lessonClock{font-size:12px;white-space:nowrap}
 }
 @media print{#appView #nav,.timetableHeaderActions,.portal-footer{display:none!important}}
+
+.public-timetable-entry{margin-bottom:16px;text-align:center}.public-timetable-entry h2{font-size:20px;margin:0 0 14px}.public-timetable-links{display:flex;gap:12px;flex-wrap:wrap}.public-timetable-links a{flex:1;min-width:120px;text-decoration:none}.public-timetable-entry p{margin:12px 0 0;font-size:14px;color:var(--text-muted,#536b8c)}

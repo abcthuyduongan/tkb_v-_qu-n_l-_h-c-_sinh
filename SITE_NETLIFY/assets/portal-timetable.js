@@ -7,8 +7,9 @@
  function theme(target){
   const doc=target.contentDocument;if(!doc?.querySelector('.page-shell,.admin-shell'))return;
   doc.documentElement.classList.add('portal-embedded');
-  if(!doc.getElementById('portalFrameTokens')){const tokens=doc.createElement('link');tokens.id='portalFrameTokens';tokens.rel='stylesheet';tokens.href='/assets/portal-tokens.css?v=61';doc.head.append(tokens);}
-  if(!doc.getElementById('portalFrameTheme')){const css=doc.createElement('link');css.id='portalFrameTheme';css.rel='stylesheet';css.href='/assets/portal-timetable.css?v=61';doc.head.append(css);}
+  doc.documentElement.classList.toggle('portal-management',!!window.TranPhuReportsContext?.().admin);
+  if(!doc.getElementById('portalFrameTokens')){const tokens=doc.createElement('link');tokens.id='portalFrameTokens';tokens.rel='stylesheet';tokens.href='/assets/portal-tokens.css?v=62';doc.head.append(tokens);}
+  if(!doc.getElementById('portalFrameTheme')){const css=doc.createElement('link');css.id='portalFrameTheme';css.rel='stylesheet';css.href='/assets/portal-timetable.css?v=63';doc.head.append(css);}
   if(!observers.has(doc)){const content=doc.querySelector('.page-shell,.admin-shell');const resize=()=>{if(!target.getClientRects().length)return;const h=Math.ceil(content.getBoundingClientRect().height+16);if(h>0&&target.style.height!==h+'px'){target.style.minHeight='0';target.style.height=h+'px';}};const observer=new ResizeObserver(resize);observer.observe(content);observers.set(doc,observer);resize();}
   if(target===frame){share.disabled=!doc.getElementById('shareBtn');print.disabled=!doc.getElementById('printBtn');}
  }

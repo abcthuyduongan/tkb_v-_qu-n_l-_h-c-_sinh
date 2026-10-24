@@ -42,3 +42,5 @@
  }
  @media(max-width:700px){#appView .seat .studentCharacter{width:72px;height:72px}#appView .seat{min-height:164px}#appView #progressPage.teacher-week-view .report-filters{grid-template-columns:1fr}}
 }
+
+@media screen{.lessonAvailability{font-size:14px;line-height:1.55;color:var(--tp-muted);margin:8px 0 16px}.lessonAvailability:empty{display:none}.current-lesson #homeLessonSummary{flex-wrap:wrap}.current-lesson #lessonHint{font-size:13px;line-height:1.5}.current-lesson #lessonSelection[hidden]{display:none}}

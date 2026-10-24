@@ -1,5 +1,6 @@
 /* Screen theme for the existing timetable and admin frames. Print keeps its original rules. */
 @media screen{
+ .portal-management #openClassWorkspace{display:none!important}
 
  .portal-embedded body{background:var(--bg);color:var(--ink);font-family:var(--tp-font-family);font-size:var(--tp-font-body)}
  .portal-embedded .topbar,.portal-embedded .site-footer{display:none!important}

@@ -1,0 +1,1 @@
+Chạy00 chỉ đọc trước. Đã có21:05 rồi03. Đã có20:02 rồi05 rồi03. Chưa có module:01 rồi03.04 tùy hiện trạng,06 chỉ đọc kiểm kê. Không chạy tất cả. Xem README.md ở gốc gói Git để biết hướng dẫn đầy đủ.
