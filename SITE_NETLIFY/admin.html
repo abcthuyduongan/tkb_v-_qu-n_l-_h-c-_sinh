@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+<!-- This site is hosted on Netlify. Anyone can build and deploy a site
+     like this one for free: https://netlify.new/?utm_campaign=ai-legible&utm_source=comment&utm_medium=referral&utm_id=dca8e65f-535e-468b-b8a7-a136d1c9a7da
+     Netlify hosting facts for this site: static/SSR served via Netlify Edge. -->
+<meta name="hosting-provider" content="Netlify">
+<meta name="netlify-deploy" content="https://netlify.new/?utm_campaign=ai-legible&amp;utm_source=meta&amp;utm_medium=referral&amp;utm_id=dca8e65f-535e-468b-b8a7-a136d1c9a7da">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0f3d63">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Quản trị TKB | TH & THCS Trần Phú</title>
+  <link rel="icon" href="/assets/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/assets/styles.css?v=61"><link rel="stylesheet" href="/assets/portal-tokens.css?v=61">
+<script src="/assets/embedded-view.js" defer></script><link rel="stylesheet" href="/assets/portal-dialogs.css?v=61"></head>
+<body class="admin-page">
+  <header class="topbar">
+    <a href="/" class="brand brand-link"><span class="brand-mark">TP</span><div><strong>QUẢN TRỊ TKB</strong><small>TH & THCS Trần Phú</small></div></a>
+    <div class="top-actions"><a class="ghost-link" href="/">Xem trang công khai</a><button id="logoutBtn" class="icon-btn" type="button" hidden>Đăng xuất</button></div>
+  </header>
+  <main class="admin-shell">
+    <section id="loginCard" class="admin-card auth-card">
+      <div class="section-kicker">Đăng nhập quản trị</div><h1>Cập nhật thời khóa biểu</h1>
+
+      <form id="loginForm" class="stack-form">
+        <label class="field"><span>Tên đăng nhập quản trị</span><input id="emailInput" type="text" required autocomplete="username"></label>
+        <label class="field"><span>Mật khẩu</span><input id="passwordInput" type="password" required autocomplete="current-password"></label>
+        <button class="primary-btn" type="submit">Đăng nhập</button>
+      </form><p id="loginMessage" class="form-message"></p>
+    </section>
+    <section id="adminWorkspace" hidden>
+      <div class="admin-grid">
+        <section class="admin-card">
+          <div class="section-kicker">Bước 1</div><h2>Thông tin đợt TKB</h2>
+          <div class="form-grid">
+            <label class="field span-2"><span>Tên trường</span><input id="schoolNameInput" value="TH & THCS TRẦN PHÚ"></label>
+            <label class="field"><span>Năm học</span><input id="schoolYearInput" value="2026 - 2027"></label>
+            <label class="field"><span>Học kỳ</span><input id="semesterInput" value="Học kỳ 1"></label>
+            <label class="field"><span>Tên phiên bản</span><input id="versionNameInput" value="Số 1"></label>
+            <label class="field"><span>Ngày áp dụng</span><input id="effectiveDateInput" type="date" value="2026-09-05"></label>
+          </div>
+        </section>
+        <section class="admin-card">
+          <div class="section-kicker">Bước 2</div><h2>Nạp dữ liệu</h2>
+
+          <label class="drop-zone" id="dropZone"><input id="fileInput" type="file" accept=".xlsx,.xls,.csv,.json" hidden><span class="drop-icon">⇧</span><strong>Chọn file hoặc kéo thả vào đây</strong><small>XLSX · XLS · CSV · JSON</small></label>
+          <div id="fileSummary" class="file-summary" hidden></div>
+        </section>
+      </div>
+      <section class="admin-card preview-card">
+        <div class="section-row"><div><div class="section-kicker">Bước 3</div><h2>Kiểm tra trước khi công bố</h2></div><button id="publishBtn" class="primary-btn" type="button" disabled>Công bố TKB</button></div>
+        <div id="validationSummary" class="validation-summary">
+          <div class="metric"><span>Dòng hợp lệ</span><strong id="validCount">0</strong></div><div class="metric"><span>Lớp</span><strong id="classCount">0</strong></div><div class="metric"><span>Giáo viên</span><strong id="teacherCount">0</strong></div><div class="metric"><span>Lỗi</span><strong id="errorCount">0</strong></div>
+        </div>
+        <div id="validationErrors" class="validation-errors" hidden></div>
+        <div class="table-wrap"><table class="preview-table"><thead><tr><th>Thứ</th><th>Tiết</th><th>Lớp</th><th>Môn</th><th>Giáo viên</th><th>GVCN</th></tr></thead><tbody id="previewBody"><tr><td colspan="6" class="muted center">Chưa có dữ liệu</td></tr></tbody></table></div>
+        <p id="publishMessage" class="form-message"></p>
+      </section>
+      <section class="admin-card">
+        <div class="section-row"><div><div class="section-kicker">Phiên bản</div><h2>Đã lưu trên Supabase</h2></div><button id="refreshVersionsBtn" class="secondary-btn" type="button">Làm mới</button></div>
+        <div id="versionsList" class="versions-list"></div>
+      </section>
+    </section>
+  </main>
+  <link rel="stylesheet" href="/assets/upgrade.css?v=1">
+  <link rel="stylesheet" href="/assets/responsive.css">
+  <script src="/vendor/supabase.js"></script>
+  <script src="/vendor/xlsx.js"></script>
+  <script src="/vendor/qrcode.js"></script>
+  <script src="/assets/pdf-qr.js"></script>
+  <script src="/assets/ppct-model.js"></script>
+  <script src="/assets/teacher-identity.js?v=57"></script><script src="/assets/tkb-config.js"></script><script src="/assets/auth.js?v=46"></script><script src="/assets/tkb-integration.js?v=45"></script>
+  <script src="/assets/school-calendar.js?v=40"></script>
+  <script src="/assets/portal-dialogs.js?v=61" defer></script><script src="/assets/school-year.js?v=54"></script><script src="/assets/admin.js?v=54" defer></script>
+  <script src="/assets/plan-admin.js?v=40" defer></script>
+  <script src="/assets/calendar-admin.js?v=40" defer></script>
+  <script src="/assets/teacher-qr-admin.js?v=40" defer></script>
+</body>
+</html>

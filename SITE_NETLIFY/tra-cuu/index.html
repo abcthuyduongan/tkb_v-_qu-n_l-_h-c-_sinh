@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+<!-- This site is hosted on Netlify. Anyone can build and deploy a site
+     like this one for free: https://netlify.new/?utm_campaign=ai-legible&utm_source=comment&utm_medium=referral&utm_id=dca8e65f-535e-468b-b8a7-a136d1c9a7da
+     Netlify hosting facts for this site: static/SSR served via Netlify Edge. -->
+<meta name="hosting-provider" content="Netlify">
+<meta name="netlify-deploy" content="https://netlify.new/?utm_campaign=ai-legible&amp;utm_source=meta&amp;utm_medium=referral&amp;utm_id=dca8e65f-535e-468b-b8a7-a136d1c9a7da">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0f3d63">
+  <meta name="description" content="Tra cứu thời khóa biểu TH & THCS Trần Phú theo lớp hoặc giáo viên.">
+  <title>Thời khóa biểu | TH & THCS Trần Phú</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/assets/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/assets/styles.css?v=61"><link rel="stylesheet" href="/assets/portal-tokens.css?v=61">
+  <link rel="stylesheet" href="/assets/upgrade.css?v=1">
+<script src="/assets/embedded-view.js" defer></script><link rel="stylesheet" href="/assets/portal-dialogs.css?v=61"></head>
+<body>
+  <noscript>Trang này cần JavaScript để tra cứu thời khóa biểu.</noscript>
+  <header class="topbar no-print">
+    <div class="brand"><span class="brand-mark">TP</span><div><strong>TH & THCS TRẦN PHÚ</strong><small>Tri thức · Kỷ cương · Nhân ái</small></div></div>
+    <div class="top-actions"><button id="shareBtn" class="icon-btn" type="button" title="Chia sẻ" aria-label="Chia sẻ">↗</button><button id="printBtn" class="icon-btn" type="button" title="In / lưu PDF" aria-label="In hoặc lưu PDF">⎙</button><a class="icon-btn" id="teacherWorkspaceLink" href="/giao-vien/" title="Mở công cụ giáo viên" aria-label="Công cụ giáo viên" style="font-size:18px;font-weight:700">☑</a><a class="icon-btn admin-login-btn" href="/admin" title="Đăng nhập quản trị" aria-label="Đăng nhập quản trị"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V8a5 5 0 0 1 10 0v2m-9 0h8a2 2 0 0 1 2 2v7H6v-7a2 2 0 0 1 2-2Zm4 4v2"/></svg></a></div>
+  </header>
+  <main class="page-shell">
+    <section class="lookup-panel no-print" aria-label="Tra cứu thời khóa biểu">
+      <div class="lookup-heading"><span class="lookup-symbol" aria-hidden="true">◈</span><div><strong>TRA CỨU LỊCH HỌC</strong></div></div>
+      <div class="compact-controls">
+        <label class="field"><span>Nội dung</span><select id="viewSelect"><option value="class">TKB lớp</option><option value="teacher">TKB giáo viên</option><option value="teaching">Lịch báo giảng</option><option value="pccm">PCCM</option><option value="ppct">PPCT</option><option value="pdf">PDF</option></select></label>
+        <label id="entityField" class="field"><span id="entityLabel">Chọn lớp</span><select id="entitySelect"></select></label>
+        <div class="compact-toolbar">
+      <div id="lessonControls" class="lesson-controls"><div class="segmented"><button id="subjectMode" type="button" aria-pressed="true">Môn học</button><button id="lessonMode" type="button" aria-pressed="false">Bài học</button></div><div id="weekControls" hidden><button id="weekPrev" type="button" title="Tuần trước" aria-label="Tuần trước">−</button><label>Tuần <input id="lessonWeek" aria-label="Tuần học" type="number" value="1" min="1" max="37"></label><button id="weekNext" type="button" title="Tuần sau" aria-label="Tuần sau">+</button><button id="currentWeek" type="button" title="Về tuần hiện tại" aria-label="Về tuần hiện tại">↻</button></div></div>
+        <button id="optionsToggle" title="Tùy chọn" aria-label="Tùy chọn" class="options-toggle" type="button" aria-expanded="false" aria-controls="advancedFilters">☰ Tùy chọn</button>
+        </div>
+      </div>
+      <div id="updateNotice" class="update-notice" role="status" hidden><strong>Đã có TKB mới hơn. Bạn có cập nhật không?</strong><button id="acceptUpdate" type="button">Cập nhật</button><button id="deferUpdate" type="button">Để sau</button></div>
+      <div id="advancedFilters" class="advanced-filters" hidden>
+      <div class="offline-actions"><button id="checkUpdate" type="button">Kiểm tra cập nhật</button><button id="refreshAllData" type="button">Xóa bộ nhớ đệm và tải bản mới</button><button id="storageInfo" type="button">Dữ liệu trên máy</button><span id="savedInfo"></span></div>
+        <label class="field"><span>Học kỳ / TKB cũ</span><select id="versionSelect"></select></label>
+        <label class="field search-field"><span>Tìm nhanh</span><input id="searchInput" type="search" placeholder="Gõ lớp hoặc tên giáo viên…" autocomplete="off"><div id="searchResults" class="search-results" hidden></div></label>
+      </div>
+      <div class="panel-meta"><div class="status-group"><span id="syncState" class="status-chip">Đang tải dữ liệu…</span><button id="latestVersionBtn" class="history-return" type="button" hidden>Đang xem TKB cũ · Về bản mới nhất</button></div></div>
+    </section>
+    <section id="emptyState" class="empty-state" hidden><div class="empty-icon">⌛</div><h2>Chưa có thời khóa biểu được công bố</h2><p>Vui lòng quay lại sau hoặc liên hệ nhà trường.</p></section>
+    <p id="scheduleWarnings" role="status" style="white-space:pre-line" hidden></p>
+    <section id="scheduleDocument" class="schedule-document" hidden>
+      <div class="paper-header">
+        <div class="paper-box paper-title"><h1>THỜI KHÓA BIỂU</h1><h2 id="entityTitle">Lớp 6A</h2><em id="effectiveDate">(Thực hiện từ ngày 05 tháng 09 năm 2026)</em></div>
+        <div class="paper-box paper-side"><strong id="versionName">Số 1</strong><span id="sideInfo">GVCN: …</span></div>
+      </div>
+      <div class="paper-divider"></div><div class="no-print" style="padding:10px 0"><a id="openClassWorkspace" class="icon-btn" href="/giao-vien/">Đánh giá tiết học →</a></div>
+      <div class="schedule-head"><h3>Buổi sáng</h3><span id="lastUpdated" class="updated-note no-print"></span></div>
+      <div id="desktopSchedule" class="desktop-schedule"></div>
+      <div id="mobileSchedule" class="mobile-schedule"></div>
+      <div class="print-footer"><span>Nguồn: Thời khóa biểu được nhà trường công bố</span><span id="printGeneratedAt" hidden></span></div>
+    </section>
+    <section id="assignmentDocument" class="assignment-document" hidden>
+      <div class="assignment-heading"><div><span>PHÂN CÔNG CHUYÊN MÔN</span><h1 id="assignmentTitle">Bảng phân công giảng dạy</h1></div><strong id="assignmentVersion"></strong></div>
+      <div id="assignmentList" class="assignment-list"></div>
+    </section>
+    <section id="plansDocument" class="assignment-document" hidden><h2 id="plansTitle"></h2><label id="reportSubjectField" class="field" hidden><span>Môn học</span><select id="reportSubject"></select></label><div id="plansList"></div></section>
+  </main>
+  <footer class="site-footer no-print"><div class="footer-credit"><span>TH & THCS Trần Phú · Tra cứu TKB</span><span class="author-credit">Tác giả: <strong>Đặng Ánh Sáng</strong><span class="credit-separator"> · </span><a href="tel:0984956383">SĐT: 0984956383</a></span></div><a class="admin-footer-link" href="/admin" rel="nofollow"><span aria-hidden="true">◇</span> Đăng nhập quản trị</a></footer>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="/vendor/supabase.js"></script><script src="/assets/teacher-identity.js?v=57"></script><script src="/assets/tkb-config.js"></script><script src="/assets/auth.js?v=46"></script><script src="/assets/tkb-integration.js?v=45"></script>
+  <link rel="stylesheet" href="/assets/responsive.css?v=45">
+  <script src="/vendor/qrcode.js"></script>
+  <script src="/assets/pdf-qr.js"></script>
+  <script src="/assets/school-calendar.js?v=45"></script>
+  <script src="/assets/ppct-model.js"></script>
+  <script src="/assets/data-store.js?v=45"></script>
+  <script src="/assets/portal-dialogs.js?v=61" defer></script><script src="/assets/app.js?v=46" defer></script>
+</body>
+</html>

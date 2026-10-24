@@ -1,0 +1,27 @@
+/* Shared screen tokens. Paper/export typography remains owned by its renderer. */
+@media screen {
+ :root {
+  --tp-font-family:"Segoe UI",Tahoma,Arial,sans-serif;
+  --tp-font-body:15px;--tp-font-input:16px;--tp-font-button:14px;--tp-font-label:13px;--tp-font-caption:12px;
+  --tp-font-title:24px;--tp-font-section:20px;--tp-font-subheading:16px;
+  --tp-primary:#075cc2;--tp-blue:var(--tp-primary);--tp-blue-dark:#064a9b;--tp-primary-hover:#064a9b;--tp-focus:#075cc2;
+  --tp-success:#166534;--tp-success-soft:#ecfdf3;--tp-positive:#14532d;--tp-positive-soft:#d1fae5;--tp-outstanding:#14532d;--tp-outstanding-soft:#b4f0ca;--tp-warning:#854d0e;--tp-warning-soft:#fff8e1;
+  --tp-danger:#b42338;--tp-danger-soft:#fff1f2;--tp-info:#075985;--tp-info-soft:#e0f2fe;
+  --tp-bg:#f5f8fd;--tp-surface:#fff;--tp-soft:#eaf3ff;--tp-text:#14284b;--tp-muted:#526681;--tp-border:#d8e3ef;
+  --tp-radius-card:12px;--tp-radius-control:8px;--tp-radius-dialog:16px;
+  --tp-space-unit:4px;--tp-space-small:8px;--tp-space-field:12px;--tp-space-card:20px;--tp-touch:44px;
+  --tp-shadow:none;--tp-shadow-popover:0 8px 24px #18385e1a;--tp-shadow-modal:0 16px 48px #18385e29;
+  /* Legacy names are aliases, not an independent palette. */
+  --blue:var(--tp-blue);--navy:var(--tp-blue);--navy-deep:var(--tp-blue-dark);--bg:var(--tp-bg);
+  --card:var(--tp-surface);--soft:var(--tp-soft);--ink:var(--tp-text);--text:var(--tp-text);--muted:var(--tp-muted);
+  --border:var(--tp-border);--line:var(--tp-border);--ok:var(--tp-success);--green:var(--tp-success);
+  --danger:var(--tp-danger);--red:var(--tp-danger);--yellow:var(--tp-warning);--gold-soft:var(--tp-soft);
+  --shadow:var(--tp-shadow);--shadow-soft:var(--tp-shadow);--radius:var(--tp-radius-card);
+ }
+ button:focus-visible,a:focus-visible,summary:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{
+  outline:3px solid var(--tp-focus);outline-offset:2px;
+ }
+ input::placeholder,textarea::placeholder{color:#65758b;opacity:1}
+}
+@media screen and (max-width:700px){:root{--tp-font-title:20px;--tp-font-section:18px;--tp-space-card:16px}}
+@media screen and (prefers-reduced-motion:reduce){html{scroll-behavior:auto}button,a,input,select,textarea{transition:none!important}}

@@ -1,0 +1,11 @@
+{
+  "name": "tkb-tran-phu",
+  "version": "6.1.0",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/verify-release.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

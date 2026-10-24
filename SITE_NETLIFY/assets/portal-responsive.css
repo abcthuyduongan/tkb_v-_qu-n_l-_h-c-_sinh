@@ -1,0 +1,151 @@
+/* Responsive portal controls. The timetable's paper layout keeps its own print rules. */
+@media screen{
+ html,body{font-family:var(--tp-font-family)}
+ body{font-size:var(--tp-font-body);line-height:1.45;color:var(--tp-text);background:var(--tp-bg)}
+ button,input,select,textarea{font-family:inherit}
+ #appView .box{border-radius:var(--tp-radius-card);padding:var(--tp-space-card);box-shadow:var(--tp-shadow)}
+ #appView .box input:not([type=checkbox]),#appView .box select,#appView .box textarea{font-size:var(--tp-font-input);min-height:44px}
+ #appView h2{font-size:var(--tp-font-section);line-height:1.35}
+ #appView h3{font-size:16px;line-height:1.4}
+ #appView .box label,#appView .studentFinder label{font-size:13px;line-height:1.4}
+ #appView .btn,#appView .switch button{font-size:14px;line-height:1.35}
+ #appView .box .muted,#appView .box .note{font-size:13px;line-height:1.45}
+ body:has(#appView:not([hidden])) main,#appView,#appView .page,
+ .home-grid>*,.gridTwo>*,.seating-layout>*,.report-toolbar>*,.report-filters>*{min-width:0}
+ #appView .btn,#appView .switch button,#appView .mapNav button,
+ #appView .deskControl button,#appView .closePanel,#appView .alertRow button,
+ #appView .historyItem button,.loginbox .btn{min-height:44px}
+ #appView summary{min-height:44px;align-content:center}
+ #appView .adminPanel>summary{display:list-item;cursor:pointer;min-height:44px;align-content:center;color:var(--tp-text)}
+ #appView .adminPanel>summary::marker{color:var(--tp-blue);font-size:14px}
+ #appView .adminPanel>summary h2{display:inline-flex;align-items:center;gap:8px;margin:0;vertical-align:middle}
+ #appView .adminPanelContent{margin-top:12px}
+ #appView .box input:not([type="checkbox"]):not([type="radio"]),
+ #appView .box select,#appView .box textarea{min-width:0;max-width:100%}
+ .lessonHead{display:flex;flex-wrap:wrap;gap:10px;min-height:0;align-items:center}
+ .lessonHead>div:first-child{flex:1 1 220px;min-width:0}
+ .lessonHead b,.lessonHead .muted{overflow-wrap:anywhere}
+ .lessonHead>.btn{flex:0 0 auto;white-space:normal;font-size:13px}
+ #classMode{width:100%;max-width:520px}
+ #classMode button{flex:1 1 0;min-width:0;white-space:normal}
+ #attendanceStats{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+ #attendanceStats .stat{min-width:0;padding:10px}
+ #attendanceStats .stat small{display:block;line-height:1.4;overflow-wrap:anywhere}
+ .studentFinder{width:100%;max-width:610px}
+ .bottomClass{display:flex;align-items:center;flex-wrap:wrap;gap:10px}
+ .bottomClass .btn{white-space:normal;text-align:center;font-size:13px}
+ .studentPanel .choicegrid,.studentPanel .behaviors{min-width:0}
+ .studentPanel .choicegrid button,.studentPanel .behaviors button{min-width:0;overflow-wrap:anywhere}
+ #appView .studentPanel .behaviors button{font-size:14px;line-height:1.4}
+ .studentPanel .studentHeader>div{min-width:0}
+ .studentPanel h2{overflow-wrap:anywhere}
+ #appView .seat .studentName{font-size:13px;line-height:1.3}
+ #appView .seat .status,#appView .seat .observationTag{font-size:12px;line-height:1.35}
+ #appView .deskNum,#appView .endClass{font-size:12px}
+ .mapNav{flex-wrap:wrap}
+ .mapNav>span{flex:1;min-width:80px;text-align:center}
+ #deskControls{display:grid;grid-template-columns:repeat(auto-fit,minmax(205px,1fr));gap:10px}
+ #deskControls .deskControl{min-width:0;gap:8px;justify-content:space-between;padding:10px}
+ #deskControls .deskControl b{font-size:12px;min-width:0;overflow-wrap:anywhere}
+ #deskControls .deskControl button{min-width:44px;flex:0 0 auto}
+ #deskControls .groupCountControl{grid-column:1/-1;justify-content:flex-start}
+ #deskControls .groupCountControl b{margin-right:auto}
+ .seatingOptions>summary,.advancedOptions>summary{min-height:44px;align-content:center}
+ .layoutConfirmBar{align-items:center;gap:10px}
+ .layoutConfirmBar .pill{max-width:100%;white-space:normal}
+ .chips span{max-width:100%;overflow-wrap:anywhere}
+ .editDialog{max-height:calc(100dvh - 32px);overflow-y:auto;overscroll-behavior:contain}
+ .editDialog .actions{gap:8px}
+ .editDialog .actions .btn{min-height:44px}
+ .tableScroller,.timetableScroller,.report-table-wrap{min-width:0;max-width:100%;overflow:auto;overscroll-behavior-x:contain}
+ #reportResult{min-width:0;max-width:100%;overflow-wrap:anywhere}
+ #reportResult>.reportTable{display:block;max-width:100%;overflow-x:auto}
+ .report-toolbar,.class-review-toolbar{display:flex;align-items:end;justify-content:space-between;flex-wrap:wrap;gap:12px;margin:14px 0}
+ .report-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));align-items:end;gap:10px;flex:1 1 400px;min-width:0}
+ .report-filters label{margin:0;min-width:0}
+ .report-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+ .report-actions .btn{min-height:44px;white-space:normal;text-align:center}
+ .report-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:14px 0}
+ .report-summary>*{min-width:0;overflow-wrap:anywhere}
+ .report-table-wrap .reportTable{display:table;width:100%;min-width:680px;white-space:normal;margin:0}
+ .class-review-toolbar>label{flex:1 1 170px;min-width:0;margin:0}
+ .class-review-toolbar>.btn{flex:0 0 auto;min-height:44px}
+ .filters{grid-template-columns:repeat(3,minmax(0,1fr));align-items:end}
+ .filters label{min-width:0}
+ .filters label:nth-child(3){grid-column:auto}
+ .filters .btn{min-height:44px}
+ #adminPage .more-grid{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+ #adminPage .gridTwo{align-items:start}
+ #adminPage .box{min-width:0}
+ .historyItem{flex-wrap:wrap}
+ .historyItem>div:first-child{flex:1 1 160px;min-width:0;overflow-wrap:anywhere}
+}
+@media screen and (max-width:1179px){
+ body:has(#appView:not([hidden])) main{padding-bottom:16px}
+ #appView #nav button{min-height:52px;font-size:12px}
+ .toast{bottom:calc(90px + env(safe-area-inset-bottom))}
+}
+@media screen and (min-width:701px) and (max-width:1100px){
+ .seating-layout{grid-template-columns:minmax(0,1fr) 250px;gap:14px}
+ .studentPanel{padding:14px}
+ .classMap{gap:10px}
+ .seat .studentName{font-size:13px;line-height:1.3;min-height:38px}
+ .studentPanel .choicegrid button,.studentPanel .behaviors button{font-size:12px}
+ .home-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+ .current-lesson h2,.home-reminders h2{font-size:17px}
+}
+@media screen and (max-width:700px){
+ body:has(#appView:not([hidden])) .bar .btn{min-height:44px;padding:7px 8px;font-size:12px}
+ .home-grid{grid-template-columns:1fr}
+ #homePage .gridTwo{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ #homePage .box input,#homePage .box select{font-size:16px}
+ .homeLessonSummary{padding-left:0;gap:6px 10px}
+ .lessonHead{padding:14px;gap:8px}
+ .lessonHead>div:first-child{flex-basis:100%}
+ .lessonHead>.btn{flex:1 1 calc(50% - 4px);min-width:0;padding:9px 8px;font-size:13px}
+ .lessonHead b{font-size:20px}
+ #attendanceStats{grid-template-columns:repeat(3,minmax(0,1fr))}
+ #attendanceStats .stat{padding:9px}
+ #attendanceStats .stat small{font-size:12px}
+ #classMode button{min-height:44px;font-size:14px}
+ .bottomClass>.btn{flex:1 1 150px}
+ .studentPanel.open{left:0;right:0;bottom:0;max-height:88dvh;padding:14px 16px calc(16px + env(safe-area-inset-bottom));overflow-y:auto;overscroll-behavior:contain}
+ .studentPanel .closePanel{position:sticky;top:0;z-index:2;font-size:12px;min-height:44px;min-width:68px;padding:8px 10px}
+ .studentPanel .studentHeader{clear:both}
+ .studentPanel .behaviors{gap:8px}
+ .studentPanel .behaviors button{min-height:48px;font-size:13px}
+ .studentPanel .choicegrid button{min-height:48px;font-size:14px}
+ .studentPanel #saveObs{min-height:46px}
+ #deskControls{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ #deskControls .deskControl{flex-wrap:wrap;gap:6px;padding:8px}
+ #deskControls .deskControl b{flex-basis:100%;font-size:12px}
+ #deskControls .deskControl button{flex:1 1 0;padding:7px 5px}
+ #deskControls .groupCountControl{flex-wrap:nowrap;gap:8px}
+ #deskControls .groupCountControl b{flex-basis:auto}
+ #deskControls .groupCountControl button{flex:0 0 auto;padding:7px 10px}
+ .layoutConfirmBar .btn{font-size:12px;min-height:44px}
+ .mapNav .btn{min-height:44px;font-size:12px}
+ .mainTeacherDesk{min-width:0;max-width:100%}
+ .filters{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .filters label:nth-child(3),.filters #makeReport{grid-column:1/-1}
+ .filters .btn{font-size:13px}
+ .report-toolbar{gap:10px;align-items:stretch}
+ .report-filters{grid-template-columns:repeat(2,minmax(0,1fr));flex-basis:100%}
+ .report-filters label:nth-child(3){grid-column:1/-1}
+ .report-actions{width:100%;gap:8px}
+ .report-actions .btn{flex:1 1 120px;font-size:13px}
+ .report-summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .class-review-toolbar{align-items:stretch;gap:10px}
+ .class-review-toolbar>label{flex-basis:100%}
+ .class-review-toolbar>.btn{flex:1 1 120px}
+ #adminPage .gridTwo{grid-template-columns:1fr}
+ #adminPage .more-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ #adminPage .more-grid .btn{font-size:13px;white-space:normal;text-align:center;padding:9px}
+}
+@media screen and (max-width:390px){
+ #appView #nav{gap:3px;padding-left:8px;padding-right:8px}
+ #appView #nav button{font-size:12px}
+ #deskControls{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .editOverlay{padding:10px}
+ .editDialog{padding:16px;max-height:calc(100dvh - 20px)}
+}

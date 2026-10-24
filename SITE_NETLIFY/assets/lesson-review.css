@@ -1,0 +1,44 @@
+@media screen{
+ #appView .studentCharacter{object-fit:contain;background:transparent;border-radius:0;max-width:100%}
+ #appView .seat .avatar{display:grid;place-items:center;line-height:0;flex:0 0 auto}
+ #appView .seat .studentCharacter{width:56px;height:56px;flex-basis:auto;background:transparent;border-radius:0}
+ #appView .seat{min-height:148px}
+ #appView .studentHeader .studentCharacter{width:64px;height:64px;background:transparent;border-radius:0}
+ .lesson-review-panel{border:1px solid var(--tp-border);background:white;border-radius:var(--tp-radius-card);padding:0 14px;margin:12px 0}
+ .lesson-review-panel summary{font-weight:600;min-height:44px;cursor:pointer}
+ .lesson-review-panel summary span{font-size:12px;font-weight:400;color:var(--tp-muted);margin-left:8px}
+ .lesson-review-panel textarea{display:block;width:100%;box-sizing:border-box;min-height:88px;resize:vertical;font:16px/1.45 var(--tp-font-family);color:var(--tp-text);border:1px solid #bfd0e3;border-radius:var(--tp-radius-control);padding:10px}
+ .lesson-review-panel .actions{padding:10px 0}
+ .lesson-review-panel .review-facts{font-size:13px;color:var(--tp-muted);margin:8px 0}
+ /* Daily notes use an independent label; attendance chips keep their own meaning. */
+ #appView .seat.day-state-neutral,#appView .rosterStudent.day-state-neutral{background:var(--tp-success-soft);border-color:#75b895}
+ #appView .seat.day-state-notice,#appView .rosterStudent.day-state-notice{background:var(--tp-warning-soft);border-color:#d1ac4c}
+ #appView .seat.day-state-attention,#appView .rosterStudent.day-state-attention{background:var(--tp-danger-soft);border-color:#c52d48;box-shadow:inset 0 3px 0 #c52d48}
+ #appView .seat.day-state-highlight,#appView .rosterStudent.day-state-highlight{background:var(--tp-positive-soft);border-color:#18794e;box-shadow:inset 0 3px 0 #18794e}
+ #appView .seat.day-state-outstanding,#appView .rosterStudent.day-state-outstanding{background:var(--tp-outstanding-soft);border-color:#166534;box-shadow:inset 0 3px 0 #166534}
+ #appView .seat.day-state-unknown,#appView .rosterStudent.day-state-unknown{background:#f1f5f9;border-color:#cbd5e1}
+ .dayStateLabel{display:block;max-width:100%;font-size:12px;line-height:1.4;font-weight:600;color:var(--tp-success);overflow-wrap:anywhere}
+ .day-state-notice .dayStateLabel{color:var(--tp-warning)}
+ .day-state-attention .dayStateLabel{color:var(--tp-danger)}
+ .day-state-highlight .dayStateLabel{color:var(--tp-positive)}
+ .day-state-outstanding .dayStateLabel{color:var(--tp-outstanding)}
+ .day-state-unknown .dayStateLabel{color:#475569}
+ .rosterStudent .dayStateLabel{grid-column:2/-1;text-align:left}
+ .dayStateLegend{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin:12px 0;font-size:12px;color:var(--tp-muted)}
+ .dailyHandoff{margin:0 0 12px;padding:0 12px;border:1px solid var(--tp-border);border-radius:var(--tp-radius-card);background:var(--tp-surface)}
+ .dailyHandoff>summary{min-height:44px;align-content:center;font-size:14px;font-weight:600;color:var(--tp-text);cursor:pointer}
+ .dailyHandoffRow{padding:12px 0;border-top:1px solid var(--tp-border)}
+ .dailyHandoffRow b{font-size:14px;font-weight:600;color:var(--tp-text)}
+ .dailyHandoffRow small{display:block;margin-top:4px;font-size:12px;line-height:1.5;color:var(--tp-muted)}
+ .dailyHandoffRow p{margin:8px 0 0;font-size:13px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--tp-text)}
+ .dailyHandoff .inline-error{padding:10px;margin:8px 0;border:1px solid #c52d48;border-radius:var(--tp-radius-control);background:var(--tp-danger-soft);font-size:13px;color:var(--tp-danger)}
+ .dailyHandoff .inline-error .btn{margin-top:8px;min-height:44px}
+ .report-error{padding:12px;border:1px solid #c52d48;border-radius:var(--tp-radius-control);background:var(--tp-danger-soft);color:var(--tp-danger)}
+ .report-error .btn{margin-top:8px;min-height:44px}
+ #appView #progressPage.teacher-week-view .report-filters{grid-template-columns:minmax(150px,1fr) minmax(160px,2fr)}
+ @media(prefers-reduced-motion:no-preference){
+  #appView .seat.day-state-outstanding,#appView .rosterStudent.day-state-outstanding{animation:daily-note-glow 3s ease-in-out 2}
+  @keyframes daily-note-glow{0%,100%{box-shadow:inset 0 3px 0 #166534}50%{box-shadow:inset 0 3px 0 #166534,0 0 0 3px #16653424}}
+ }
+ @media(max-width:700px){#appView .seat .studentCharacter{width:72px;height:72px}#appView .seat{min-height:164px}#appView #progressPage.teacher-week-view .report-filters{grid-template-columns:1fr}}
+}

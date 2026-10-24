@@ -1,0 +1,55 @@
+/* Screen theme for the existing timetable and admin frames. Print keeps its original rules. */
+@media screen{
+
+ .portal-embedded body{background:var(--bg);color:var(--ink);font-family:var(--tp-font-family);font-size:var(--tp-font-body)}
+ .portal-embedded .topbar,.portal-embedded .site-footer{display:none!important}
+ .portal-embedded .page-shell,.portal-embedded .admin-shell{padding:0 0 12px;max-width:none;margin:0}
+ .portal-embedded .lookup-panel,.portal-embedded .assignment-document,.portal-embedded .schedule-document,.portal-embedded .panel,.portal-embedded .card{border:1px solid var(--line);border-radius:var(--tp-radius-card);background:var(--tp-surface);box-shadow:var(--tp-shadow)}
+ .portal-embedded .lookup-panel:after,.portal-embedded .day-card h4:before{display:none}
+ .portal-embedded .lookup-symbol{color:var(--blue)}
+ .portal-embedded .field>span{color:var(--tp-muted);font-size:var(--tp-font-label);text-transform:none;letter-spacing:0;font-weight:600}
+ .portal-embedded input,.portal-embedded select,.portal-embedded textarea{border-color:var(--line);color:var(--ink);border-radius:var(--tp-radius-control)}
+ .portal-embedded .options-toggle,.portal-embedded .icon-btn,.portal-embedded .secondary-btn,.portal-embedded .lesson-controls button,.portal-embedded .offline-actions button,.portal-embedded .plan-actions button{background:#f0f6ff;border-color:var(--line);color:var(--blue);box-shadow:none}
+ .portal-embedded .compact-toolbar .segmented{background:#edf4ff;border-color:var(--line)}
+ .portal-embedded .compact-toolbar .segmented button{background:transparent;color:var(--muted)}
+ .portal-embedded .compact-toolbar .segmented button[aria-pressed=true],.portal-embedded .primary-btn,.portal-embedded #acceptUpdate{background:var(--blue);color:#fff}
+ .portal-embedded .compact-toolbar #weekControls button{color:var(--blue)}
+ .portal-embedded .compact-toolbar #weekControls button:disabled{color:#93a7c3}
+ .portal-embedded .paper-header{display:block;padding:0;min-height:0}
+ .portal-embedded .school-info{display:none}
+ .portal-embedded .paper-title{padding:12px;border:0}
+ .portal-embedded .paper-title h2{font-size:var(--tp-font-section);line-height:1.35;margin:0 0 4px}
+ .portal-embedded .paper-title em{font-size:13px;line-height:1.4;font-style:normal}
+ .portal-embedded .schedule-head h3{font-size:var(--tp-font-section)}
+ .portal-embedded .compact-toolbar .segmented button{font-size:14px;min-height:44px;padding:8px 10px}
+ .portal-embedded .field select,.portal-embedded .field input{font-size:16px;min-height:44px}
+ .portal-embedded .lookup-panel{padding:12px;margin-bottom:12px}
+ .portal-embedded .period-content strong{font-size:14px;line-height:1.4}
+ .portal-embedded .period-content small,.portal-embedded .period-badge{font-size:12px}
+ .portal-embedded .paper-box{border-color:var(--line);font-family:inherit;color:var(--ink)}
+ .portal-embedded .paper-title h1{display:none}
+ .portal-embedded #versionName{display:none}
+ .portal-embedded .paper-side:has(#sideInfo:empty){display:none}
+ .portal-embedded .paper-header:has(#sideInfo:empty){grid-template-columns:1fr}
+ .portal-embedded .paper-side{color:var(--ink)}
+ .portal-embedded .paper-divider{background:var(--line)}
+ .portal-embedded .schedule-head h3,.portal-embedded .desktop-grid{font-family:inherit}
+ .portal-embedded .desktop-schedule,.portal-embedded .day-head,.portal-embedded .schedule-cell{border-color:var(--line)}
+ .portal-embedded .day-head,.portal-embedded .day-card h4{background:#eaf3ff;color:var(--blue)}
+ .portal-embedded .day-card,.portal-embedded .assignment-card,.portal-embedded .plan-card{border-color:var(--line);box-shadow:none}
+ .portal-embedded .assignment-person>span{color:var(--blue)}
+ .portal-embedded .advanced-filters{background:#f5f8fd;border-color:var(--line)}
+ .portal-embedded #openClassWorkspace{display:inline-flex;align-items:center;justify-content:center;min-height:44px;font-size:14px;text-decoration:none}
+ .portal-embedded .compact-controls .compact-toolbar #optionsToggle{width:auto;min-width:44px;height:44px;min-height:44px;padding-inline:10px}
+ .portal-embedded .admin-card h1{font-size:var(--tp-font-title)}
+ .portal-embedded .admin-card h2{font-size:var(--tp-font-section)}
+ .portal-embedded .admin-card h3{font-size:var(--tp-font-subheading)}
+ .portal-embedded .schedule-document{margin-left:0;margin-right:0}
+ @media(max-width:480px){.portal-embedded .compact-controls .compact-toolbar #optionsToggle{width:44px;padding:0}}
+ /* At 320px reflow the embedded canvas is narrower than the portal. Do not
+    reserve an invisible week picker; a visible picker may wrap inside its row. */
+ @media(max-width:320px){
+  .portal-embedded .compact-toolbar #lessonControls{flex-wrap:wrap}
+  .portal-embedded .compact-toolbar #weekControls[hidden]{display:none!important}
+ }
+}

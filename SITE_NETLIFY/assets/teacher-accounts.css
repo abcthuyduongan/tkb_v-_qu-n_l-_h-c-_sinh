@@ -1,0 +1,18 @@
+@media screen{
+ .teacher-account-dialog{box-sizing:border-box;width:min(900px,calc(100vw - 24px));max-height:90dvh;border:1px solid var(--tp-border,#dfe8f4);border-radius:var(--tp-radius-dialog);padding:20px;color:var(--tp-text);font:var(--tp-font-body)/1.5 var(--tp-font-family);box-shadow:var(--tp-shadow-modal);overflow:auto}
+ .teacher-account-dialog::backdrop{background:#14284b75}
+ .teacher-account-dialog>header{display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:-20px;background:white;padding:12px 0;z-index:1}
+ .teacher-account-dialog h2{font-size:var(--tp-font-section);margin:0}.teacher-account-dialog h3{font-size:var(--tp-font-subheading);margin:12px 0 8px}
+ .teacher-account-dialog label{display:grid;gap:6px;margin:12px 0;font-size:13px;font-weight:600}
+ .teacher-account-dialog input,.teacher-account-dialog select{box-sizing:border-box;width:100%;min-height:44px;min-width:0;border:1px solid #bfd0e3;border-radius:var(--tp-radius-control);padding:10px;font:var(--tp-font-input) var(--tp-font-family);color:var(--tp-text);background:white}
+ .teacher-account-dialog input[readonly]{background:#f5f8fd}.teacher-account-dialog button{font-size:14px;min-height:44px}
+ .teacher-account-dialog dl{display:grid;grid-template-columns:150px minmax(0,1fr);gap:8px;margin:14px 0}.teacher-account-dialog dt{color:var(--tp-muted)}.teacher-account-dialog dd{margin:0;overflow-wrap:anywhere}
+ .teacher-account-dialog .account-password{border-top:1px solid #dfe8f4;margin-top:20px;padding-top:8px}
+ .teacher-account-dialog [hidden]{display:none!important}.account-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px}.account-tabs [aria-selected=true]{background:#e5f0ff;border-color:#82b5ff;color:var(--tp-blue)}
+ .teacher-account-card{border:1px solid #dfe8f4;border-radius:12px;padding:14px;margin:10px 0}.teacher-account-card p{margin:7px 0;overflow-wrap:anywhere}
+ .teacher-account-dialog .account-create{background:#f5f8fd;border:1px solid #dfe8f4;border-radius:12px;padding:12px}.teacher-account-dialog summary{cursor:pointer;min-height:44px;align-content:center;font-weight:600}
+ .teacher-account-dialog .error{color:var(--tp-danger)}.account-identity-warning{padding:10px;border-radius:var(--tp-radius-control);background:#fff4db;color:#7b5615}
+ .teacher-account-dialog .account-help{display:inline-flex;align-items:center;min-height:44px;color:var(--tp-blue);margin-top:12px}
+ .header-account .ui-icon{width:22px;height:22px}
+ @media(max-width:700px){body:has(#appView:not([hidden])) .barlinks>a[href*="huong-dan"]{display:none}.teacher-account-dialog{padding:16px}.teacher-account-dialog>header{top:-16px}.teacher-account-dialog dl{grid-template-columns:1fr;gap:3px}.teacher-account-dialog dd{margin-bottom:9px}}
+}

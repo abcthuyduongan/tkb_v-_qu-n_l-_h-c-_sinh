@@ -1,0 +1,73 @@
+/* Keep wide curriculum tables inside their own scroll area on phones. */
+#weekControls{flex-wrap:wrap;max-width:100%}.field,.compact-controls>*{min-width:0}
+#calendarPreview{max-height:340px;overflow:auto;border:1px solid #d5e0e9;padding:10px;margin:10px 0}
+#scheduleWarnings{padding:12px;border:1px solid #e8b967;background:#fff6df;border-radius:12px;overflow-wrap:anywhere}
+.calendar-adjust{display:grid;grid-template-columns:160px minmax(210px,1fr) auto;align-items:end;gap:12px;margin:16px 0}.week-overrides{display:flex;flex-wrap:wrap;gap:8px;min-height:36px}.week-override-chip{display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border-radius:999px;background:#edf4f8;color:#123f67;font-size:13px;font-weight:750}.week-override-chip button{display:grid;place-items:center;width:22px;height:22px;padding:0;border:0;border-radius:50%;background:#fff;color:#9b2c22;cursor:pointer}.teacher-qr-sheet{display:none}
+#plansList{min-width:0;max-width:100%;overflow-wrap:anywhere}
+.ppct-table{min-width:0;max-width:100%;overflow-x:auto}
+.ppct-table table{width:100%;min-width:650px;border-collapse:collapse}
+.qr-dialog svg{display:block;width:280px;max-width:100%;height:auto;margin:16px auto}
+.qr-dialog button{margin:4px}
+.metadata-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.pdf-admin .field{margin:12px 0}
+@media print{.qr-dialog button{display:none!important}}
+@media(max-width:600px){.calendar-adjust{grid-template-columns:1fr}.calendar-adjust .secondary-btn{width:100%}.teaching-report table{min-width:760px}}
+.lesson-mobile-table{grid-column:1/-1;width:100%;overflow:hidden;border:1px solid #d4e0e8;border-radius:14px;background:#fff;box-shadow:0 5px 14px rgba(15,61,99,.06)}.lesson-mobile-table table{width:100%;border-collapse:collapse;table-layout:fixed}.lesson-mobile-table thead th{padding:10px 8px;background:linear-gradient(100deg,var(--navy-deep),var(--navy));color:#fff;text-align:left;font-size:13px}.lesson-mobile-table thead th:first-child{width:72px}.lesson-mobile-table thead th:nth-child(2){width:58px}.lesson-mobile-table tbody th{padding:10px 6px;border-right:1px solid #dfe8ee;border-bottom:2px solid #c9d9e4;color:var(--navy);background:#f3f8fb;text-align:center;vertical-align:middle;font-size:13px}.lesson-mobile-table td{padding:9px 8px;border-bottom:1px solid #e8eef2;vertical-align:middle;overflow-wrap:anywhere}.lesson-mobile-table tr:nth-child(5n) td{border-bottom:2px solid #c9d9e4}.lesson-mobile-table .lesson-period{width:58px;color:var(--navy);font-size:12px;font-weight:900;white-space:nowrap}.lesson-mobile-table td strong,.lesson-mobile-table td small{display:block}.lesson-mobile-table td strong{font-size:14px;line-height:1.35}.lesson-mobile-table td small{margin-top:3px;color:var(--muted);font-size:11px;line-height:1.3}.lesson-mobile-table tr.off td{color:#8492a0;background:#fafafa}.lesson-mobile-table tr:last-child>*{border-bottom:0}
+@media print{body.printing-teacher-qr>*:not(.teacher-qr-sheet){display:none!important}body.printing-teacher-qr .teacher-qr-sheet{display:block!important;color:#111;background:#fff;font-family:Arial,sans-serif}.teacher-qr-sheet>header{text-align:center;margin-bottom:8mm}.teacher-qr-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6mm}.teacher-qr-card{border:1px solid #777;border-radius:3mm;padding:4mm;text-align:center;break-inside:avoid}.teacher-qr-code svg{display:block;width:42mm;height:42mm;margin:auto}.teacher-qr-card h2{font-size:12pt;margin:2mm 0 1mm}.teacher-qr-card p{font-size:8.5pt;margin:0}}
+
+/* Compact mode switch shares the existing Options row. */
+.compact-controls .compact-toolbar{grid-column:1/-1;display:flex;align-items:center;gap:8px;min-width:0}
+.compact-toolbar #lessonControls{display:flex;align-items:center;gap:8px;margin:0;flex:1;min-width:0;flex-wrap:wrap}
+.compact-toolbar .segmented{display:inline-flex;gap:0;padding:3px;border:1px solid #d4e0e8;border-radius:10px;background:#f3f7fa}
+.compact-toolbar .segmented button{margin:0;border:0;border-radius:7px;padding:7px 11px;min-height:34px;font-size:13px;white-space:nowrap;background:transparent}
+.compact-toolbar .segmented button[aria-pressed=true]{background:#174a72;color:white}
+.compact-controls .compact-toolbar #optionsToggle{width:auto;min-height:40px;height:40px;padding:0 12px;font-size:13px;white-space:nowrap;flex:0 0 auto;margin-left:auto}
+.compact-toolbar #weekControls{gap:4px;font-size:12px}
+.compact-toolbar #weekControls button{padding:5px;min-width:26px}
+.compact-toolbar #lessonWeek{width:48px;padding:5px}
+#advancedFilters .offline-actions{grid-column:1/-1;margin:0}
+#advancedFilters #savedInfo{font-size:11px}
+
+/* One aligned toolbar; never reserve an extra row for the week picker. */
+.compact-toolbar #lessonControls{flex-wrap:nowrap;gap:8px}
+.compact-toolbar #weekControls{flex:0 0 auto;gap:3px;white-space:nowrap}
+.compact-toolbar #weekControls label{display:flex;align-items:center;gap:3px}
+.compact-toolbar #weekControls button{display:none}
+.compact-toolbar #lessonWeek{width:43px;height:32px;font-size:13px}
+.compact-toolbar .segmented button{padding:7px 9px;min-height:32px}
+.compact-controls .compact-toolbar #optionsToggle{height:38px;min-height:38px;padding:0 9px}
+@media(max-width:370px){.compact-controls .compact-toolbar{gap:4px}.compact-toolbar #lessonControls{gap:4px}.compact-toolbar .segmented button{padding:7px 6px;font-size:12px}.compact-controls .compact-toolbar #optionsToggle{padding:0 6px;font-size:12px}.compact-toolbar #lessonWeek{width:38px}}
+/* Reserve the week slot even in subject mode to avoid layout shifts. */
+.compact-toolbar #weekControls[hidden]{display:flex!important;visibility:hidden;pointer-events:none}
+.compact-toolbar .segmented{flex:0 0 auto}
+.compact-toolbar #lessonControls{justify-content:flex-start}
+.compact-controls .compact-toolbar{min-height:40px;flex-wrap:nowrap}
+@media(max-width:350px){.compact-toolbar .segmented button{font-size:11px;padding:7px 4px}.compact-controls .compact-toolbar #optionsToggle{font-size:11px;padding:0 5px}.compact-toolbar #weekControls{font-size:11px;gap:2px}.compact-toolbar #lessonWeek{width:35px;font-size:12px}}
+/* Keep page width stable when lesson content introduces a scrollbar. */
+html{scrollbar-gutter:stable}
+.compact-controls .compact-toolbar #optionsToggle{transition:background-color .2s,border-color .2s}
+.compact-toolbar #weekControls button{display:inline-flex;align-items:center;justify-content:center;width:24px;min-width:24px;height:32px;padding:0;border-radius:7px;font-size:14px}
+@media(max-width:480px){.compact-controls .compact-toolbar #optionsToggle{font-size:0;width:34px;min-width:34px;padding:0}.compact-controls .compact-toolbar #optionsToggle::after{content:'☰';font-size:18px}.compact-toolbar #lessonControls{gap:6px}.compact-toolbar #weekControls{gap:2px}}
+@media(max-width:350px){.compact-toolbar #weekControls label{font-size:0;gap:0}.compact-toolbar #weekControls button{width:22px;min-width:22px}}
+/* Compact author credit beneath the school name. */
+.site-footer{align-items:center;gap:12px;flex-wrap:wrap}
+.footer-credit{display:flex;flex-direction:column;gap:5px;min-width:0;font-size:12px;line-height:1.5}
+.author-credit{color:#617486;font-size:11px}
+.author-credit strong{font-weight:600;color:#35546b}
+.site-footer .author-credit a{font-size:11px;font-weight:400;color:inherit;text-decoration:none;white-space:nowrap}
+.site-footer .author-credit a:hover{text-decoration:underline}
+.site-footer .admin-footer-link{white-space:nowrap;margin-left:auto;font-size:12px}
+/* Visible, high-contrast week steppers with a larger touch target. */
+.compact-toolbar #weekControls button{display:inline-flex;width:34px;min-width:34px;height:40px;font-size:24px;line-height:1;font-weight:700;color:#fff;background:#174a72;border:1px solid #174a72;border-radius:8px}
+.compact-toolbar #weekControls button:disabled{color:#648096;background:#eaf0f5;border-color:#cad8e4;cursor:default}
+.compact-toolbar #lessonWeek{height:40px;font-size:15px;text-align:center}
+@media(max-width:350px){.compact-toolbar #weekControls button{width:32px;min-width:32px}.compact-toolbar #lessonWeek{width:32px}}
+/* Reduce the week buttons by ten percent. */
+.compact-toolbar #weekControls button{width:30.6px;min-width:30.6px;height:36px;font-size:21.6px}
+@media(max-width:350px){.compact-toolbar #weekControls button{width:28.8px;min-width:28.8px}}
+.lesson-mobile-table thead th:first-child{width:94px}.lesson-mobile-table tbody th span,.lesson-mobile-table tbody th small{display:block}.lesson-mobile-table tbody th small{margin-top:4px;color:#557087;font-size:10px;font-weight:750;white-space:nowrap}
+/* Unfilled week controls. */
+.compact-toolbar #weekControls button{background:transparent;color:#174a72;border-color:#c7d8e5}
+.compact-toolbar #weekControls button:disabled{background:transparent;color:#93a7b7;border-color:#dce5ec}
+/* Only the signs remain visible; preserve the clickable area. */
+.compact-toolbar #weekControls button,.compact-toolbar #weekControls button:disabled{border:0;background:transparent;box-shadow:none}

@@ -1,0 +1,31 @@
+/* School-week anchors shared by TKB and PPCT. */
+(()=>{
+const sb=window.TkbAdminClient,$=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const section=document.createElement('section');section.className='admin-card calendar-admin';section.innerHTML=`<div class="section-kicker">Tuần học</div><h2>Mốc tuần PPCT của năm học</h2><p class="muted">Học kỳ 1 gồm tuần 1–19; học kỳ 2 gồm tuần 20–37. Khi đổi ngày của một tuần, các tuần sau sẽ tự nối tiếp cách nhau 7 ngày.</p><div class="metadata-grid"><label class="field">Năm học<input id="calendarYear" value="2026-2027" pattern="[0-9]{4}-[0-9]{4}" required></label><label class="field">Bắt đầu học kỳ 1<input id="semester1Start" type="date" required></label><label class="field">Bắt đầu học kỳ 2<input id="semester2Start" type="date" required></label></div><div class="calendar-adjust"><label class="field">Tuần cần điều chỉnh<input id="overrideWeek" type="number" min="1" max="37" value="1"></label><label class="field">Ngày bắt đầu mới<input id="overrideDate" type="date"></label><button id="addWeekOverride" class="secondary-btn" type="button">Thêm điều chỉnh</button></div><details open><summary>Xem trước 37 tuần</summary><div id="calendarPreview"></div></details><div id="weekOverrides" class="week-overrides"></div><div class="plan-actions"><button id="saveSchoolCalendar" class="primary-btn" type="button">Lưu cấu hình tuần</button><button id="loadSchoolCalendar" class="secondary-btn" type="button">Tải cấu hình</button></div><p id="calendarMessage" class="form-message" role="status"></p>`;
+$('adminWorkspace').append(section);let overrides={},loadedYear=null,loadedRevision=null;
+function payload(){return {school_year:$('calendarYear').value.trim(),semester1_start:$('semester1Start').value,semester2_start:$('semester2Start').value,week_overrides:overrides};}
+function preview(){try{$('calendarPreview').innerHTML=SchoolCalendar.weeks(payload()).map(w=>`<p>HK ${w.term} · Tuần ${w.week}: ${w.start} → ${w.end}</p>`).join('');}catch(e){$('calendarPreview').textContent=e.message;}}
+for(const id of ['semester1Start','semester2Start'])$(id).onchange=preview;
+function message(text,kind=''){$('calendarMessage').textContent=text;$('calendarMessage').className=`form-message ${kind}`;}
+function render(){preview();$('weekOverrides').innerHTML=Object.entries(overrides).sort((a,b)=>Number(a[0])-Number(b[0])).map(([w,d])=>`<span class="week-override-chip">Tuần ${w}: ${esc(d)} <button type="button" data-remove-week="${w}" aria-label="Xóa điều chỉnh tuần ${w}">×</button></span>`).join('')||'<span class="muted">Chưa có tuần điều chỉnh.</span>';}
+async function load(){const year=$('calendarYear').value.trim();if(!year)return;message('Đang tải…');const{data,error}=await sb.from('tkb_school_calendars').select('*').eq('school_year',year).maybeSingle();if(error){message('Chưa đọc được cấu hình tuần: '+error.message+' (cần chạy migration 03).','error');return;}loadedYear=year;loadedRevision=data?.updated_at||null;overrides=data?.week_overrides||{};if(data){$('semester1Start').value=data.semester1_start;$('semester2Start').value=data.semester2_start;message('Đã tải cấu hình.','ok');}else {$('semester1Start').value='';$('semester2Start').value='';message('Năm học này chưa có cấu hình.');}render();}
+$('addWeekOverride').onclick=()=>{const w=Number($('overrideWeek').value),d=$('overrideDate').value;if(!Number.isInteger(w)||w<1||w>37||!d){message('Chọn tuần 1–37 và ngày bắt đầu mới.','error');return;}if(w===1||w===20){message('Hãy chỉnh ngày bắt đầu học kỳ tương ứng ở trên.','error');return;}for(const k of Object.keys(overrides)){if(Number(k)>w&&Number(k)<=(w<=19?19:37))delete overrides[k];}overrides[w]=d;render();message(`Đã đặt mốc tuần ${w}; các mốc sau trong học kỳ được tính lại. Kiểm tra bảng 37 tuần rồi bấm Lưu.`);};
+$('weekOverrides').onclick=e=>{const b=e.target.closest('[data-remove-week]');if(!b)return;delete overrides[b.dataset.removeWeek];render();};
+$('loadSchoolCalendar').onclick=load;
+const historyBox=document.createElement('details');historyBox.innerHTML='<summary>Lịch sử cấu hình / khôi phục</summary><button type="button" id="calendarHistoryLoad" class="secondary-btn">Tải lịch sử</button><div id="calendarHistory"></div>';section.append(historyBox);
+let historyRows=[];
+$('calendarHistoryLoad').onclick=async()=>{try{await window.requireTkbAdmin();const {data,error}=await sb.from('tkb_calendar_history').select('*').eq('school_year',$('calendarYear').value.trim()).order('changed_at',{ascending:false}).limit(30);if(error)throw error;historyRows=data||[];$('calendarHistory').innerHTML=historyRows.map((r,i)=>'<p>'+esc(new Date(r.changed_at).toLocaleString('vi-VN'))+' <button type="button" data-history="'+i+'">Xem trước để khôi phục</button></p>').join('')||'Chưa có lịch sử.';}catch(e){message(e.message,'error');}};
+$('calendarHistory').onclick=e=>{const b=e.target.closest('[data-history]');if(!b)return;const r=historyRows[Number(b.dataset.history)];if(!r||r.school_year!==loadedYear)return;overrides={...r.value.week_overrides};$('semester1Start').value=r.value.semester1_start;$('semester2Start').value=r.value.semester2_start;render();message('Đã nạp bản cũ để xem trước. Bấm Lưu cấu hình tuần để khôi phục.');};
+$('saveSchoolCalendar').onclick=async()=>{
+ const button=$('saveSchoolCalendar');button.disabled=true;
+ try{await window.requireTkbAdmin();const value=payload();if(!/^\d{4}-\d{4}$/.test(value.school_year))throw Error('Năm học dùng dạng 2026-2027.');
+ if(loadedYear!==value.school_year)throw Error('Bấm Tải cấu hình cho năm học đã chọn trước khi lưu.');
+ SchoolCalendar.weeks(value);
+ const query=loadedRevision?sb.from('tkb_school_calendars').update(value).eq('school_year',loadedYear).eq('updated_at',loadedRevision):sb.from('tkb_school_calendars').insert(value);
+ const {data,error}=await query.select('updated_at');if(error)throw error;if(!data.length)throw Error('Cấu hình đã được người khác sửa. Tải lại trước khi lưu.');
+ loadedRevision=data[0].updated_at;message('Đã lưu cấu hình tuần học.','ok');
+ }catch(e){message(e.message,'error');}finally{button.disabled=false;}
+};
+
+sb.auth.onAuthStateChange((_event,session)=>{if(session)setTimeout(load,0);});sb.auth.getSession().then(({data})=>{if(data.session)load();});render();
+})();

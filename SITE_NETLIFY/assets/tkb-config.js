@@ -1,0 +1,2 @@
+window.TKB_CONFIG={supabaseUrl:"https://hnijkdbnucudgwiudxwf.supabase.co",
+supabaseAnonKey:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhuaWprZGJudWN1ZGd3aXVkeHdmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxMjkzNjksImV4cCI6MjEwMzcwNTM2OX0.5ydGVkKadS4Lp1e13rJQxGcgJ8dl-EdxdOzPDP9iH8s"};
