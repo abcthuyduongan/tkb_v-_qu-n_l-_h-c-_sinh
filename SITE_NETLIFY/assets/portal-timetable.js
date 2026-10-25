@@ -17,7 +17,7 @@
  function notify(message){const node=document.getElementById('toast');node.textContent=message;node.classList.add('show');setTimeout(()=>{if(node.textContent===message)node.classList.remove('show');},3500);}
  share.addEventListener('click',async()=>{
   const doc=frame.contentDocument;if(!doc)return;
-  const url=new URL('/',location.origin);url.searchParams.set('page','timetable');
+  const url=new URL('/tra-cuu/',location.origin);
   for(const [key,id] of [['mode','viewSelect'],['id','entitySelect'],['version','versionSelect']]){const value=doc.getElementById(id)?.value;if(value&&value!=='demo')url.searchParams.set(key,value);}
   try{if(navigator.share)await navigator.share({title:doc.title,text:'Thời khóa biểu Trần Phú',url:url.href});else{await navigator.clipboard.writeText(url.href);notify('Đã sao chép liên kết TKB');}}
   catch(error){if(error.name!=='AbortError')notify('Chưa thể chia sẻ. Vui lòng thử lại.');}

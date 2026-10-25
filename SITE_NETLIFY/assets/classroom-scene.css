@@ -8,9 +8,10 @@
  #appView .classroom-compact .group{min-width:0;padding:10px;border:1px solid var(--tp-border);border-radius:10px;background:var(--tp-surface);box-shadow:none}
  #appView .classroom-compact .group h3{margin:0 0 6px;padding:0;font-size:15px;line-height:1.4;font-weight:650;color:var(--tp-text);background:transparent}
  #appView .classroom-compact .endClass{height:auto;margin:0 0 8px;padding:4px;border-radius:6px;font-size:12px;line-height:1.4;color:var(--tp-muted);background:var(--tp-primary-soft)}
- #appView .classroom-compact .desk{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:0 0 3px;padding:5px;border:1px solid #efdfb8;border-radius:9px;background:#fff9eb;box-shadow:none}
+ #appView .classroom-compact .desk{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:0 0 4px;padding:6px;border:1px solid var(--tp-border);border-radius:8px;background:var(--tp-surface-subtle,#f8fafc);box-shadow:none}
  #appView .classroom-compact .desk::before,#appView .classroom-compact .desk::after{display:none}
  #appView .classroom-compact .seat{display:grid;grid-template-columns:40px minmax(0,1fr);gap:3px 6px;align-content:center;align-items:center;min-width:0;min-height:88px;padding:7px 6px;border:1px solid var(--tp-border);border-radius:8px;box-shadow:none;overflow:visible;text-align:left;cursor:pointer}
+ #appView .classroom-compact .seat:hover{border-color:var(--tp-border-strong,#93b4db)}
  #appView .classroom-compact .studentIdentity{display:contents}
  #appView .classroom-compact .seat .avatar{grid-column:1;grid-row:1/span 2;display:block;align-self:center;width:40px;height:44px;margin:0;line-height:0}
  #appView .classroom-compact .seat .studentCharacter,#appView .classroom-compact .seat .genderAvatar{display:block;width:40px;height:44px;max-width:100%;flex-basis:auto;object-fit:contain;background:transparent;border-radius:0}

@@ -51,13 +51,14 @@
     message('Đang đổi mật khẩu…');const result=await api({action:'change_password',current_password:oldValue,new_password:newValue});
     current.value=next.value=confirm.value='';const login=await sb.auth.signInWithPassword({email:result.email,password:newValue});
     if(login.error)throw Error('Đã đổi mật khẩu. Hãy đăng nhập lại bằng mật khẩu mới.');
+    try{if(login.data?.user?.id)localStorage.setItem('tranphu-auth-confirmed-v1',login.data.user.id);}catch{}
     close();notify('Đã đổi mật khẩu.');if(mustResume)await window.TranPhuResumeAccount?.();
    }catch(error){
     current.value=next.value=confirm.value='';
     if(/mật khẩu hiện tại/i.test(error.message||''))passwordError(current,error.message);else message(error.message,true);
    }finally{if(button.isConnected){button.disabled=false;form.setAttribute('aria-busy','false');}}
   };
-  if($('leavePasswordSetup'))$('leavePasswordSetup').onclick=async()=>{forced=false;close();await sb.auth.signOut();location.reload();};
+  if($('leavePasswordSetup'))$('leavePasswordSetup').onclick=async()=>{forced=false;close();try{localStorage.removeItem('tranphu-auth-confirmed-v1');}catch{}await sb.auth.signOut();location.reload();};
   if(forced)current.focus();
  }
  function bindProfileTabs(){

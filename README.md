@@ -1,6 +1,10 @@
-# Trần Phú — bản6.5.0 (25/10/2026)
+# Trần Phú — bản6.6.1 (25/10/2026)
 
-Bản này đồng bộ mã nguồn/cache74: sơ đồ gọn theo mẫu mới, ảnh nhỏ19KB, chọn tổ trực tiếp; điểm danh/nhận xét tự lưu; thông tin các tiết trước của lớp; quản lý học sinh; nhập số/ngày TKB và quản trị xác nhận bản đang áp dụng. Gói có Function quản lý tài khoản và SQL cập nhật, không có dữ liệu học sinh hoặc tài khoản thử. Chưa áp dụng SQL hoặc triển khai thật.
+**Ứng viên cục bộ, chưa được phép coi là nghiệm thu production. Website thật chỉ kiểm tra đọc theo xác nhận của người dùng.**
+
+Bản này đồng bộ mã nguồn/cache76: giữ phiên đăng nhập bền vững qua F5/tải lại trang/mở tab mới (khi phiên còn hợp lệ); tăng tốc khởi động bằng truy vấn song song `Promise.all`, bỏ vòng mạng `getUser()` và `tkb_versions` thừa, cache TKB hiện hành dự phòng; Việt hóa thông báo lỗi xác thực/mạng; tự lưu ghi chú điểm danh khi sửa bổ sung; chia sẻ liên kết TKB công khai `/tra-cuu/`; sơ đồ gọn, thông tin các tiết trước của lớp, quản lý học sinh, nhập số/ngày TKB và quản trị xác nhận bản đang áp dụng. Gói có Function quản lý tài khoản và SQL cập nhật, không có dữ liệu học sinh hoặc tài khoản thử.
+
+Bản6.6.1 bổ sung lưu điểm danh có kiểm tra xung đột, ghi chú không đổi trạng thái và Word giữ hàng bảng. Không thêm migration so với6.6.0. Khi chuyển bản, đóng/mở lại các tab cũ để mọi người dùng nhận mã mới.
 
 ## Cập nhật CSDL Supabase
 
@@ -37,7 +41,7 @@ git pull --ff-only
 node scripts/verify-release.mjs
 git status --short
 git add .
-git commit -m "Update Tran Phu 6.5.0"
+git commit -m "Update Tran Phu 6.6.1"
 git push origin main
 ```
 

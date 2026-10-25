@@ -124,6 +124,8 @@
   }
 
   let authRevision=0,approvedUser='',checkedAt=0,pendingAuth=null,pendingUser='',currentUser='';
+  const confirmedAuthKey='tranphu-auth-confirmed-v1';
+  const translateAuthError=e=>{const m=String(e?.message||e||'');if(/invalid login credentials/i.test(m))return 'Sai tên đăng nhập hoặc mật khẩu. Vui lòng kiểm tra lại.';if(/email not confirmed/i.test(m))return 'Tài khoản chưa được kích hoạt.';if(/rate limit|too many requests/i.test(m))return 'Đăng nhập quá nhiều lần. Vui lòng đợi ít phút rồi thử lại.';if(/failed to fetch|networkerror|load failed/i.test(m))return 'Không kết nối được máy chủ. Vui lòng kiểm tra mạng Internet và thử lại.';return m||'Đăng nhập thất bại';};
   const subscribe=callback=>window.TkbAuth?.subscribe?window.TkbAuth.subscribe(callback):sb.auth.onAuthStateChange(callback);
   function authGate(text,retry=false){el('adminAuthGate').hidden=false;el('adminAuthText').textContent=text;el('retryAdminSession').hidden=!retry;el('returnToPortal').hidden=!text;}
   function clearWorkspace(){el('adminWorkspace').hidden=true;el('adminWorkspace').inert=false;el('versionsList').innerHTML='';parsedRows=[];parsedAssignments=[];validationErrors=[];el('fileInput').value='';summarize();}
@@ -133,8 +135,9 @@
     if(uid!==currentUser){authRevision++;approvedUser='';checkedAt=0;clearWorkspace();currentUser=uid;}
     el('logoutBtn').hidden=!session;
     if(!session){authRevision++;el('adminAuthGate').hidden=true;el('loginCard').hidden=false;return;}
+    try{localStorage.setItem(confirmedAuthKey,uid);}catch{}
     el('loginCard').hidden=true;
-    if(session.user.app_metadata?.force_password_change){clearWorkspace();authGate('Cần đặt mật khẩu riêng tại ứng dụng trước khi quản lý TKB.');return;}
+    if(session.user.app_metadata?.force_password_change){if(el('returnToPortal'))el('returnToPortal').href='/?page=admin';clearWorkspace();authGate('Cần đặt mật khẩu riêng tại ứng dụng trước khi quản lý TKB.');return;}
     if(!force&&approvedUser===uid&&Date.now()-checkedAt<30000)return;
     if(pendingAuth&&pendingUser===uid)return pendingAuth;
     const revision=++authRevision;pendingUser=uid;if(approvedUser!==uid)authGate('Đang mở quản lý TKB…');
@@ -149,10 +152,10 @@
   el('retryAdminSession').onclick=()=>restoreAdminSession(true);
   el('loginForm').addEventListener('submit',async e=>{
     e.preventDefault();msg(el('loginMessage'),'Đang đăng nhập…');
-    const{error}=await sb.auth.signInWithPassword({email:window.TranPhuTeacherIdentity.loginEmail(el('emailInput').value),password:el('passwordInput').value});
-    if(error)msg(el('loginMessage'),error.message,'error');else msg(el('loginMessage'),'Đăng nhập thành công','ok');
+    const{data,error}=await sb.auth.signInWithPassword({email:window.TranPhuTeacherIdentity.loginEmail(el('emailInput').value),password:el('passwordInput').value});
+    if(error)msg(el('loginMessage'),translateAuthError(error),'error');else{try{if(data?.user?.id)localStorage.setItem(confirmedAuthKey,data.user.id);}catch{}msg(el('loginMessage'),'Đăng nhập thành công','ok');}
   });
-  el('logoutBtn').addEventListener('click',()=>sb.auth.signOut());
+  el('logoutBtn').addEventListener('click',()=>{try{localStorage.removeItem(confirmedAuthKey);}catch{}sb.auth.signOut();});
 
   const dz=el('dropZone'),fi=el('fileInput');
   fi.addEventListener('change',()=>fi.files[0]&&parseFile(fi.files[0]));
