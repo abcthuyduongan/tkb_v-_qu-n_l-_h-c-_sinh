@@ -1,0 +1,31 @@
+/* One compact classroom: the same seats in assessment and seating management. */
+@media screen {
+ #appView .classroom-compact{grid-template-columns:repeat(var(--classroom-group-count,1),minmax(0,1fr));gap:12px;align-items:start;min-width:0}
+ #appView .classroom-group-tabs{grid-column:1/-1;display:flex;gap:6px;min-width:0;max-width:100%;overflow-x:auto;padding:2px 2px 6px;scrollbar-width:thin}
+ #appView .classroom-group-tabs button{flex:1 0 60px;min-height:44px;padding:8px 10px;border:1px solid var(--tp-border);border-radius:8px;background:var(--tp-primary-soft);color:var(--tp-muted);font:inherit;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap}
+ #appView .classroom-group-tabs button[aria-pressed=true]{background:var(--tp-primary);border-color:var(--tp-primary);color:#fff}
+ #appView .classroom-group-tabs button:focus-visible{outline:3px solid var(--tp-primary);outline-offset:2px}
+ #appView .classroom-compact .group{min-width:0;padding:10px;border:1px solid var(--tp-border);border-radius:10px;background:var(--tp-surface);box-shadow:none}
+ #appView .classroom-compact .group h3{margin:0 0 6px;padding:0;font-size:15px;line-height:1.4;font-weight:650;color:var(--tp-text);background:transparent}
+ #appView .classroom-compact .endClass{height:auto;margin:0 0 8px;padding:4px;border-radius:6px;font-size:12px;line-height:1.4;color:var(--tp-muted);background:var(--tp-primary-soft)}
+ #appView .classroom-compact .desk{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:0 0 3px;padding:5px;border:1px solid #efdfb8;border-radius:9px;background:#fff9eb;box-shadow:none}
+ #appView .classroom-compact .desk::before,#appView .classroom-compact .desk::after{display:none}
+ #appView .classroom-compact .seat{display:grid;grid-template-columns:40px minmax(0,1fr);gap:3px 6px;align-content:center;align-items:center;min-width:0;min-height:88px;padding:7px 6px;border:1px solid var(--tp-border);border-radius:8px;box-shadow:none;overflow:visible;text-align:left;cursor:pointer}
+ #appView .classroom-compact .studentIdentity{display:contents}
+ #appView .classroom-compact .seat .avatar{grid-column:1;grid-row:1/span 2;display:block;align-self:center;width:40px;height:44px;margin:0;line-height:0}
+ #appView .classroom-compact .seat .studentCharacter,#appView .classroom-compact .seat .genderAvatar{display:block;width:40px;height:44px;max-width:100%;flex-basis:auto;object-fit:contain;background:transparent;border-radius:0}
+ #appView .classroom-compact .seat .studentName{grid-column:2;grid-row:1;display:block;align-self:center;width:100%;max-width:100%;min-height:0;margin:0;font-size:13px;line-height:1.4;font-weight:650;text-align:left;white-space:normal;overflow-wrap:normal;word-break:normal;letter-spacing:0}
+ #appView .classroom-compact .seat .status{grid-column:2;grid-row:2;justify-self:start;max-width:100%;padding:2px 5px;font-size:12px;line-height:1.35;font-weight:500;white-space:normal}
+ #appView .classroom-compact .seat .dayStateLabel,#appView .classroom-compact .seat .observationTag{grid-column:1/-1;font-size:12px;line-height:1.4;max-width:100%;white-space:normal}
+ #appView .classroom-compact.attendance-view .seat{background:var(--tp-surface)}
+ #appView .classroom-compact.attendance-view .dayStateLabel{display:none}
+ #appView .classroom-compact:not(.attendance-view) .seat.att-present .status{display:none}
+ #appView #seatingEditor.classroom-compact .seat{min-height:68px;background:var(--tp-surface)}
+ #appView #seatingEditor.classroom-compact .seat .avatar{grid-row:1}
+ #appView .classroom-compact .seat.empty{display:flex;justify-content:center;align-items:center;border-style:dashed;color:var(--tp-muted);font-size:13px}
+ #appView .classroom-compact .seat.selected{outline:2px solid var(--tp-primary);outline-offset:1px}
+ #appView .classroom-compact .seat:focus-visible{outline:3px solid var(--tp-primary);outline-offset:2px}
+ #appView .classroom-compact .deskNum{margin:0 0 9px;font-size:12px;line-height:1.4;color:var(--tp-muted);text-align:center}
+ #appView .classroom-compact .mainTeacherDesk{grid-column:1/-1;display:flex;align-items:center;justify-content:center;gap:7px;min-width:0;width:min(360px,100%);margin:0 auto;padding:9px 12px;border:1px solid var(--tp-border);border-radius:8px;background:var(--tp-primary-soft);color:var(--tp-text);font-size:12px;line-height:1.5;box-shadow:none}
+}
+@media print{.classroom-group-tabs{display:none!important}}

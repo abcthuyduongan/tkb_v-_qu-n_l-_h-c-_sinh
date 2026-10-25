@@ -13,7 +13,7 @@
   <title>Quản trị TKB | TH & THCS Trần Phú</title>
   <link rel="icon" href="/assets/icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/assets/styles.css?v=67"><link rel="stylesheet" href="/assets/portal-tokens.css?v=61">
-<script src="/assets/embedded-view.js" defer></script><link rel="stylesheet" href="/assets/portal-dialogs.css?v=61"></head>
+<script src="/assets/embedded-view.js" defer></script><link rel="stylesheet" href="/assets/portal-dialogs.css?v=61"><link rel="stylesheet" href="/assets/timetable-admin.css?v=71"></head>
 <body class="admin-page">
   <header class="topbar">
     <a href="/" class="brand brand-link"><span class="brand-mark">TP</span><div><strong>QUẢN TRỊ TKB</strong><small>TH & THCS Trần Phú</small></div></a>
@@ -33,23 +33,23 @@
       <div class="admin-grid">
         <section class="admin-card">
           <div class="section-kicker">Bước 1</div><h2>Thông tin đợt TKB</h2>
-          <div class="form-grid">
+          <form id="timetableMetadataForm" class="form-grid">
             <label class="field span-2"><span>Tên trường</span><input id="schoolNameInput" value="TH & THCS TRẦN PHÚ"></label>
             <label class="field"><span>Năm học</span><input id="schoolYearInput" value="2026-2027"></label>
-            <label class="field"><span>Học kỳ</span><input id="semesterInput" value="Học kỳ 1"></label>
-            <label class="field"><span>Tên phiên bản</span><input id="versionNameInput" value="Số 1"></label>
-            <label class="field"><span>Ngày áp dụng</span><input id="effectiveDateInput" type="date" value="2026-09-05"></label>
-          </div>
+            <label class="field"><span>Học kỳ</span><select id="semesterInput"><option>Học kỳ 1</option><option>Học kỳ 2</option></select></label>
+            <label class="field"><span>TKB số</span><input id="versionNoInput" type="number" min="1" max="9999" step="1" required placeholder="Ví dụ: 3"></label>
+            <label class="field"><span>Ngày áp dụng</span><input id="effectiveDateInput" type="date" min="2000-01-01" max="2100-12-31" required></label>
+          </form>
         </section>
         <section class="admin-card">
           <div class="section-kicker">Bước 2</div><h2>Nạp dữ liệu</h2>
 
           <label class="drop-zone" id="dropZone"><input id="fileInput" type="file" accept=".xlsx,.xls,.csv,.json" hidden><span class="drop-icon">⇧</span><strong>Chọn file hoặc kéo thả vào đây</strong><small>XLSX · XLS · CSV · JSON</small></label>
-          <div id="fileSummary" class="file-summary" hidden></div>
+          <p class="import-meta-note">Nhập số TKB và ngày áp dụng ở bước 1. Tệp chỉ cung cấp nội dung lịch và PCCM.</p><div id="fileSummary" class="file-summary" hidden></div>
         </section>
       </div>
       <section class="admin-card preview-card">
-        <div class="section-row"><div><div class="section-kicker">Bước 3</div><h2>Kiểm tra trước khi công bố</h2></div><button id="publishBtn" class="primary-btn" type="button" disabled>Công bố TKB</button></div>
+        <div class="section-row"><div><div class="section-kicker">Bước 3</div><h2>Kiểm tra trước khi công bố</h2></div><button id="publishBtn" class="primary-btn" type="button" disabled>Lưu bản TKB</button></div>
         <div id="validationSummary" class="validation-summary">
           <div class="metric"><span>Dòng hợp lệ</span><strong id="validCount">0</strong></div><div class="metric"><span>Lớp</span><strong id="classCount">0</strong></div><div class="metric"><span>Giáo viên</span><strong id="teacherCount">0</strong></div><div class="metric"><span>Lỗi</span><strong id="errorCount">0</strong></div>
         </div>
@@ -58,7 +58,7 @@
         <p id="publishMessage" class="form-message"></p>
       </section>
       <section class="admin-card">
-        <div class="section-row"><div><div class="section-kicker">Phiên bản</div><h2>Đã lưu trên Supabase</h2></div><button id="refreshVersionsBtn" class="secondary-btn" type="button">Làm mới</button></div>
+        <div class="section-row"><div><div class="section-kicker">Phiên bản</div><h2>Các bản thời khóa biểu</h2></div><button id="refreshVersionsBtn" class="secondary-btn" type="button">Làm mới</button></div>
         <div id="versionsList" class="versions-list"></div>
       </section>
     </section>
@@ -70,9 +70,9 @@
   <script src="/vendor/qrcode.js"></script>
   <script src="/assets/pdf-qr.js"></script>
   <script src="/assets/ppct-model.js"></script>
-  <script src="/assets/teacher-identity.js?v=67"></script><script src="/assets/tkb-config.js"></script><script src="/assets/auth.js?v=64"></script><script src="/assets/tkb-integration.js?v=45"></script>
+  <script src="/assets/teacher-identity.js?v=67"></script><script src="/assets/tkb-config.js"></script><script src="/assets/auth.js?v=64"></script><script src="/assets/tkb-integration.js?v=71"></script>
   <script src="/assets/school-calendar.js?v=40"></script>
-  <script src="/assets/portal-dialogs.js?v=61" defer></script><script src="/assets/school-year.js?v=54"></script><script src="/assets/admin.js?v=67" defer></script>
+  <script src="/assets/portal-dialogs.js?v=61" defer></script><script src="/assets/school-year.js?v=54"></script><script src="/assets/admin.js?v=71" defer></script>
   <script src="/assets/plan-admin.js?v=64" defer></script>
   <script src="/assets/calendar-admin.js?v=64" defer></script>
   <script src="/assets/teacher-qr-admin.js?v=64" defer></script>

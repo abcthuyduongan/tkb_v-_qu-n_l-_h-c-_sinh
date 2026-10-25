@@ -64,7 +64,7 @@
  #appView #nav button .ui-icon{width:22px;height:22px}
  #appView #nav button.on{color:var(--tp-blue);background:#e7f2ff}
  .mobile-bottom-nav{display:none!important}
- body:has(#appView:not([hidden])) .portal-footer{padding-bottom:calc(80px + env(safe-area-inset-bottom))}
+ body:has(#appView:not([hidden])) .portal-footer{padding-bottom:calc(var(--tp-bottom-nav-height,calc(85px + env(safe-area-inset-bottom))) + 12px)}
 }
 @media screen and (max-width:700px){
  .bar{min-height:56px;padding:6px 12px;gap:8px}

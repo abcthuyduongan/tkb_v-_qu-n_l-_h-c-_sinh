@@ -1,83 +1,52 @@
-# Trần Phú — bản bàn giao 6.4.3 (25/10/2026)
+# Trần Phú — bản6.5.0 (25/10/2026)
 
-Bản6.4.3 sửa thống kê theo từng giáo viên và bố cục quản trị; tài khoản đã xác minh có thể đồng bộ trước, còn thiếu tài khoản thì chưa thu hồi quyền cũ. Đã có23 thì chỉ chạy SQL07 rồi03 sau backup; chưa có23 thì05→07→03. Mã đã hoàn thiện theo các góp ý hiện tại và kiểm thử cục bộ. Gói dùng để cập nhật repository GitHub rồi triển khai Netlify. Không phải bản sao lưu CSDL. Chưa xác nhận hoạt động trên Netlify/Supabase thật sau cập nhật.
+Bản này đồng bộ mã nguồn/cache74: sơ đồ gọn theo mẫu mới, ảnh nhỏ19KB, chọn tổ trực tiếp; điểm danh/nhận xét tự lưu; thông tin các tiết trước của lớp; quản lý học sinh; nhập số/ngày TKB và quản trị xác nhận bản đang áp dụng. Gói có Function quản lý tài khoản và SQL cập nhật, không có dữ liệu học sinh hoặc tài khoản thử. Chưa áp dụng SQL hoặc triển khai thật.
 
-## Cập nhật bản trường đang dùng
+## Cập nhật CSDL Supabase
 
-1. Sao lưu CSDL; chạy `SQL/00_KIEM_TRA_HIEN_TRANG.sql` (chỉ đọc).
-2. Trường đã có hai RPC daily_learning/handoffs và19 bảng v4 như kết quả đã gửi: nếu hiện trạng00 xác nhận đủ module21, chạy **SQL/05_CAP_NHAT_TU_21_LEN_23.sql**, rồi **SQL/07_CAP_NHAT_DONG_BO_TAI_KHOAN.sql** và **SQL/03_KIEM_TRA_SAU_CAP_NHAT.sql**. Không chạy lại01.05 chỉ thay hai hàm kiểm quyền để tách admin/giáo viên;07 bổ sung đồng bộ tài khoản đã liên kết. Không xóa lịch sử hay tài khoản. Chạy lại05 có cùng kết quả.
-3. Nếu còn cảnh báo năm học: chạy `SQL/06_KIEM_KE_PHIEN_BAN_TKB_CHI_DOC.sql`. Chỉ khi TKB active/published dùng năm sai chuẩn mới đối chiếu và chạy04.04 không sửa các bản lưu cũ và sẽ dừng nếu có xung đột hoặc dữ liệu phụ thuộc. Không gộp/xóa3 phiên bản cũ chỉ để hết cảnh báo.
-4. Cập nhật toàn bộ mã của gói vào gốc repository hiện tại; kiểm tra build rồi push như bên dưới.
-5. Kiểm tra biến môi trường Netlify và chức năng thật sau deploy. Không chia sẻ service key trong chat hoặc Git.
+Sao lưu CSDL của trường trước. Mở SQL Editor đúng dự án, chạy `SQL/00_KIEM_TRA_HIEN_TRANG.sql` (chỉ đọc), rồi theo kết quả:
 
-## Đã thay đổi
+| Hiện trạng đã có | Thứ tự chạy tiếp |
+|---|---|
+| SQL08/module26 (xem các tuần trước) | **09 →03** |
+| Đã đủ29 | **03** để hậu kiểm |
+| SQL07/module25 | **08 →09 →03** |
+| Module23 (đã tách admin/GV) | **07 →08 →09 →03** |
+| Module21 | **05 →07 →08 →09 →03** |
+| Module20 chưa21 | **02 →05 →07 →08 →09 →03** |
+| Chưa có bảng v4, đã có CSDL TKB gốc | **01 →03** |
+| Module cài một phần | Dừng và đối chiếu các bước còn thiếu; không chạy01 |
 
-Bản6.4.3: tách thông báo buổi hiện tại khỏi tiết sắp tới; tiết gần nhất ghi đủ thứ/ngày/tiết/lớp/môn/giờ. Ẩn Thông tin tiết học khi không có tiết để chọn. Không đổi SQL hoặc phân quyền.
+Số bên trên là file trong thư mục SQL của gói. Mỗi file chạy xong thành công rồi mới chạy file kế tiếp. Không chạy tất cả file từ00đến09. **Không chạy lại01 trên CSDL đã có module.**
 
-- Trang đăng nhập có **Theo giáo viên / Theo lớp**, không yêu cầu tài khoản. Lối công khai chỉ hai loại TKB; không mở PCCM, PPCT, báo giảng, PDF từ menu, link trực tiếp hoặc tùy chọn lưu cũ. Đây là giới hạn chức năng giao diện; chính sách dữ liệu TKB công khai hiện hữu giữ nguyên để đối chiếu tên giáo viên.
-- Mở hoặc tải lại trang phải nhấn Enter/nút Đăng nhập kể cả đã lưu phiên; điền sẵn mật khẩu không tự vào. Sau đăng nhập dùng chung client khi chuyển trang nhúng; refresh token trong trang đang dùng không đưa người dùng về form và không xóa nháp. Lỗi mạng có Thử lại, không tự đăng xuất.
-- Tài khoản quản trị và giáo viên tách riêng. Admin không điểm danh/đánh giá/xếp chỗ; vẫn quản lý, xem TKB và báo cáo. Giáo viên có quyền theo phân công và chủ nhiệm.
-- Lịch riêng chỉ lớp/tiết của buổi; thông báo tiết gần nhất, không có tiết hoặc trường không dạy buổi chiều. Khôi phục tiết đang làm trong ngày; qua ngày chỉ đọc.
-- Phân biệt thiếu cấu hình dịch vụ tài khoản với lỗi phiên đăng nhập; không cho cấp/reset khi dịch vụ chưa sẵn sàng. Danh bạ giáo viên lấy từ CSDL, giữ đối chiếu hai giáo viên tên Thủy.
-- Giữ các chức năng đã chốt: nhận xét sau điểm danh, trạng thái học tập trong ngày, tổng hợp tiết tự động có nguồn, xếp chỗ linh hoạt, báo cáo theo quyền, xuất Excel/Word và giao diện thống nhất.
+File09_CAP_NHAT_QUAN_LY_LOP_VA_TKB.sql gom nguồn27→28→29 trong một transaction. Nó bổ sung hàm quản lý học sinh, số/ngày và áp dụng TKB, nhóm ghi nhận các tiết học; không xóa lịch sử, không đổi năm/số hoặc tự kích hoạt TKB hiện có. Có guard dừng nếu nền/schema thiếu. Chạy lại09 giữ dữ liệu. Sau09 không chạy lại08 riêng vì08 sẽ thay hàm handoff29; nếu cần chạy08 thì09 phải theo sau.
 
-## Cấu trúc đưa lên GitHub
+File03 là hậu kiểm chỉ đọc:19 bảng v4 bật RLS; daily_learning/handoffs SECURITY DEFINER=false, anon=false/authenticated=true;5 hàm quản lý mới SECURITY DEFINER=true, anon=false/authenticated=true; trigger không được anon/authenticated gọi trực tiếp. Các cờ weekly_history, linked_account_sync, lesson_highlights, future_timetable_guard phải true. SQL Editor không đại diện JWT giáo viên nên vẫn cần thử bằng tài khoản thật.
 
-Đưa **nội dung đã giải nén** vào gốc repository, gồm SITE_NETLIFY, netlify, SQL, scripts, netlify.toml, package.json, package-lock.json, CHECKSUMS.json, README.md và các file ẩn. Không upload chính ZIP làm website. Không chỉ copy SITE_NETLIFY. Giữ `.gitattributes` để Git không đổi CRLF/LF làm sai checksum.
+04 sửa metadata năm học chỉ khi đã đối chiếu hiện trạng;06 chỉ đọc kiểm kê. Các file dọn bản TKB theo UUID là tác vụ bảo trì riêng, không nằm trong gói này. Không tự gộp/xóa phiên bản cũ để hết cảnh báo.
 
-Repository đã xác nhận: https://github.com/abcthuyduongan/tkb_v-_qu-n_l-_h-c-_sinh.git
+## Cập nhật GitHub
 
-Với bản clone hiện có: kiểm tra `git status`, giữ công việc chưa commit nếu có, `git pull --ff-only`, rồi chép đè nội dung gói mới (không đụng `.git` và không đưa secret vào). Đổi tên `README.md` cũ không cần thiết: gói có hướng dẫn hiện hành thay thế.
+Repository: https://github.com/abcthuyduongan/tkb_v-_qu-n_l-_h-c-_sinh.git
 
-Chạy trong thư mục clone sau khi chép mã:
+Dùng clone hiện có `release/GIT_DEPLOY_WORK`. Kiểm tra giữ thay đổi cá nhân nếu có; pull trước khi chép bản mới. Chép toàn bộ nội dung thư mục TRAN_PHU_GIT_NETLIFY vào clone, gồm các file ẩn, giữ thư mục.git. Không upload ZIP làm website và không chỉ copy SITE_NETLIFY.
 
 ```powershell
+git pull --ff-only
+# Chép nội dung gói sau khi pull thành công.
 node scripts/verify-release.mjs
 git status --short
 git add .
-git commit -m "Update Tran Phu 6.4: public timetable and session fixes"
+git commit -m "Update Tran Phu 6.5.0"
 git push origin main
 ```
 
-Chỉ commit/push nếu lệnh kiểm gói PASS và danh sách thay đổi đúng. Nếu chưa có clone, dùng `git clone` URL trên vào thư mục trống trước khi chép gói. Không `git init` lại repository cũ và không force push. Không chạy script sửa checksum để che lỗi copy; copy lại đúng gói nếu có lệch.
-
-## SQL cho các hiện trạng khác
-
-- Có đủ module20, chưa có21: chạy02 (20→21), rồi05 (21→23),07 (23→25), rồi03.
-- Chưa có bảng v4, đã có schema TKB gốc: chạy01 (gộp các bước ghi01→21→23→25 trong một transaction), rồi03.01 chặn nếu module tồn tại.
-- Module cài một phần: đối chiếu steps và chỉ áp dụng phần còn thiếu. Thứ tự ghi:01→03→05→06→08→09→10→11→12→13→14→15→16→17→19→20→21→23→25. Không suy chỉ từ một hàm tồn tại.
-- Thiếu schema TKB gốc: dừng; gói không tạo dữ liệu trường giả để thay thế.
-
-Số ở thư mục SQL là thứ tự hướng dẫn; số trong SQL/steps là migration nguồn. Không chạy tất cả file theo tên.02/04/07/18/24 trong steps là kiểm tra chỉ đọc;22 là sửa metadata tùy hiện trạng. SQL03 hậu kiểm cần2 RPC SECURITY INVOKER, anon=false/authenticated=true;19 bảng v4 bật RLS; hai helper quyền có excludes_admin=true. Vẫn cần kiểm bằng tài khoản thật: SQL Editor không đại diện JWT giáo viên.
-
-SQL mới không tạo tài khoản Auth/admin hoặc nhập học sinh/TKB mẫu. SQL Editor không tự ghi lịch sử Supabase CLI migrations; không chạy db push mù quáng sau đó.
+Chỉ tiếp tục khi pull và kiểm gói báo thành công. Không force push, không git init lại. Giữ.gitattributes để không đổi CRLF/LF làm lệch checksum. CHECKSUMS.json đã bao gồm tệp mới; không sửa checksum để che lỗi copy.
 
 ## Netlify
 
-Gói có netlify.toml tại gốc repository: Base directory để trống, build `node scripts/verify-release.mjs`, publish `SITE_NETLIFY`, Functions `netlify/functions`, Node22. SQL và Function nằm ngoài thư mục public. Không kéo riêng SITE_NETLIFY lên Netlify Drop vì cần build Function quản lý tài khoản.
+Cấu hình đã có ở netlify.toml: Base directory để trống, build `node scripts/verify-release.mjs`, publish `SITE_NETLIFY`, Functions `netlify/functions`, Node22. SQL và Function nằm ngoài thư mục public. Giữ các biến môi trường hiện có cho Functions: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_ANON_KEY, PUBLIC_SITE_URL. Service role phải là secret; URL/anon là cấu hình công khai. Không đưa khóa riêng vào Git. Không tắt quét bí mật. Không kéo riêng SITE_NETLIFY lên Netlify Drop vì cấp tài khoản cần build Function.
 
-Trong Environment variables của đúng site **tkb-tranphu-2026**, đặt giá trị cho Production và bảo đảm có hiệu lực với Functions:
+Khi Netlify đã nối nhánh main, push sẽ kích hoạt deploy theo cấu hình site. Sau deploy kiểm trang công khai chỉ xem TKB giáo viên/lớp; đăng nhập tường minh Enter/nút; admin và GV tách riêng; lịch riêng đúng buổi; điểm danh/nhận xét trong ngày; GVCN quản lý lớp/xếp chỗ; thông tin tiết trước và xuất báo cáo đúng quyền. Dữ liệu cục bộ không thay cho nghiệm thu máy chủ thật.
 
-| Biến | Giá trị |
-|---|---|
-| SUPABASE_URL | URL dự án Supabase trường; khớp tkb-config.js |
-| SUPABASE_SERVICE_ROLE_KEY | service_role key của cùng dự án; đánh dấu Contains secret values |
-| SUPABASE_ANON_KEY | anon/public key cùng dự án |
-| PUBLIC_SITE_URL | https://tkb-tranphu-2026.netlify.app |
-
-SUPABASE_URL là URL công khai, không đánh dấu Contains secret values. Nếu đã đánh dấu, xóa và tạo lại riêng biến URL; giữ service_role là secret. Không tắt quét bí mật.
-
-Nếu gói tài khoản không có lựa chọn scope, giữ phạm vi mặc định gồm Functions. Không đặt khóa dịch vụ trong netlify.toml/tkb-config.js hoặc `.env.example`. `.env.example` chỉ mô tả tên biến, không được Netlify tự nạp lúc chạy. Sau thay biến môi trường cần deploy mới để Functions nhận cấu hình.
-
-Lỗi “Chưa cấu hình dịch vụ tài khoản” của bản cũ là cấu hình phía máy chủ: chỉ thay mã không bổ sung được biến còn thiếu. Bản mới chỉ rõ thiếu biến nào, phân biệt404 thiếu Function,503 cấu hình và401 phiên người dùng. Thao tác admin kiểm tra status không chứng minh service key hợp lệ; thử cấp/reset thật mới kiểm hết đường đi.
-
-Nguồn: [biến môi trường Functions](https://docs.netlify.com/build/functions/environment-variables/), [cấu hình Netlify](https://docs.netlify.com/build/configure-builds/file-based-configuration/).
-
-## Sau deploy
-
-- Mở cửa sổ riêng tư: trang đăng nhập có hai lựa chọn TKB, chỉ hai mục; không xem được hồ sơ học sinh khi chưa đăng nhập.
-- Đăng nhập bằng admin và giáo viên riêng: chuyển chức năng không phải nhập lại; tải lại trang chờ Enter/nút đăng nhập; menu/quyền đúng; admin không đánh giá học sinh.
-- Admin cấp tài khoản cho một giáo viên có sẵn, giáo viên đổi mật khẩu tạm; kiểm tra cấp lại và tự đổi mật khẩu. Không lưu mật khẩu ở Git hoặc báo cáo.
-- Giáo viên kiểm lịch thực, nhận xét trong ngày, khóa qua ngày; chủ nhiệm kiểm sơ đồ và báo cáo. Kiểm sao lưu/khôi phục và nghiệm thu tại trường trước mở rộng.
-
-Các kiểm tra cục bộ và kiểm gói không thay thế cấu hình, JWT/RLS, sao lưu và thử người dùng trên hệ thống thật. Toàn bộ mã nguồn phát triển chính vẫn ở SITE_NETLIFY của dự án nâng cấp, thư mục release chỉ là sản phẩm đóng gói.
+Mã phát triển chính ở SITE_NETLIFY của dự án nâng cấp. Thư mục release chỉ là kết quả đóng gói; không sửa source từ clone phát hành.

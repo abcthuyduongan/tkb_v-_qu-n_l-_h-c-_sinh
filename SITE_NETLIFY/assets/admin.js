@@ -4,7 +4,7 @@
   window.TkbAdminClient=sb;
   const el=id=>document.getElementById(id);
   const alertPortal=async message=>window.TranPhuDialog?window.TranPhuDialog.alert({title:'Chưa thể công bố TKB',message,tone:'danger'}):window.alert(message);
-  let parsedRows=[],parsedAssignments=[],validationErrors=[];
+  let parsedRows=[],parsedAssignments=[],validationErrors=[],knownVersions=[],saving=false,focusedVersion='';
 
   function msg(target,text,kind=''){target.textContent=text;target.className=`form-message ${kind}`;}
   function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -27,8 +27,8 @@
   }
   function normalizeRow(row){
     const content=parseNoiDung(field(row,['NoiDung','Nội dung']));
-    const day=Number(field(row,['ThuSo','Thứ số','Thu','Thứ']));
-    const period=Number(field(row,['Tiet','Tiết']));
+    const day=Number(field(row,['ThuSo','Thứ số','Thu','Thứ','day_no']));
+    const period=Number(field(row,['Tiet','Tiết','period_no']));
     const classCode=safe(field(row,['Lop','Lớp','class_code']));
     const subject=safe(field(row,['Mon','Môn','subject']))||content.subject;
     const teacherCode=safe(field(row,['GVMa','GV Mã','teacher_code']))||content.teacher_code;
@@ -36,18 +36,6 @@
     const homeroom=safe(field(row,['GVCN','homeroom_teacher']));
     const status=safe(field(row,['TrangThai','Trạng thái','status']))||(subject==='Nghỉ'?'Nghỉ':'Học');
     return{day_no:day,period_no:period,class_code:classCode,subject,teacher_code:teacherCode,teacher_name:teacherName,homeroom_teacher:homeroom,status};
-  }
-  function metadataFromWorkbook(wb){
-    const sheet=wb.Sheets.PCCM||wb.Sheets.PCGD||wb.Sheets.TKB_LOP_S||wb.Sheets[wb.SheetNames[0]];
-    const grid=XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:false});
-    const text=grid.flat().map(safe).filter(Boolean).join('\n');
-    const first=safe(grid[0]?.[0]),schoolName=first.split(/\r?\n/)[0]||'TH & THCS TRẦN PHÚ';
-    const year=text.match(/Năm\s*học\s*(\d{4}\s*[-–]\s*\d{4})/i)?.[1]?.replace(/–/g,'-');
-    const semesterNo=Number(text.match(/Học\s*kỳ\s*(\d+)/i)?.[1]||1);
-    const versionNo=Number(text.match(/(?:Số|LẦN)\s*(\d+)/i)?.[1]||1);
-    const d=text.match(/(?:từ\s*)?ngày\s*(\d{1,2})\s*tháng\s*(\d{1,2})\s*năm\s*(\d{4})/i);
-    const effectiveDate=d?`${d[3]}-${String(d[2]).padStart(2,'0')}-${String(d[1]).padStart(2,'0')}`:'';
-    return{schoolName,year:year||'',semesterNo,versionNo,effectiveDate};
   }
   function teacherLastName(name){const parts=safe(name).split(/\s+/);return identityKey(parts[parts.length-1]||'')}
   function assignmentHasClassSubject(assignment,subject,classCode){
@@ -91,13 +79,6 @@
       teaching_assignment:safe(r[4]),period_count:Number(r[5])||null
     })).filter(r=>r.teacher_name&&!isSpreadsheetError(r.teacher_name));
   }
-  function applyMetadata(meta){
-    if(meta.schoolName)el('schoolNameInput').value=meta.schoolName;
-    if(meta.year)el('schoolYearInput').value=canonicalYear(meta.year);
-    el('semesterInput').value=`Học kỳ ${meta.semesterNo}`;
-    el('versionNameInput').value=`Số ${meta.versionNo}`;
-    if(meta.effectiveDate)el('effectiveDateInput').value=meta.effectiveDate;
-  }
   function validate(rows){
     validationErrors=[];const seen=new Set(),good=[];
     rows.forEach((r,i)=>{
@@ -122,6 +103,7 @@
   }
 
   async function parseFile(file){
+    if(saving)return;
     parsedRows=[];parsedAssignments=[];validationErrors=[];el('publishBtn').disabled=true;
     const ext=file.name.split('.').pop().toLowerCase();
     try{
@@ -133,7 +115,7 @@
       }else{
         const buf=await file.arrayBuffer(),wb=XLSX.read(buf,{type:'array'});
         parsedAssignments=parseAssignmentSheet(wb);const classRows=parseClassSheet(wb,parsedAssignments);
-        if(classRows){parsedRows=classRows;const meta=metadataFromWorkbook(wb);applyMetadata(meta);el('fileSummary').hidden=false;el('fileSummary').innerHTML=`<b>${escapeHtml(file.name)}</b> · Tự nhận ${escapeHtml(meta.year||'năm học')}, Học kỳ ${meta.semesterNo}, Số ${meta.versionNo} · ${parsedRows.length} tiết · ${parsedAssignments.length} giáo viên PCCM`;summarize();return}
+        if(classRows){parsedRows=classRows;el('fileSummary').hidden=false;el('fileSummary').innerHTML=`<b>${escapeHtml(file.name)}</b> · ${parsedRows.length} tiết · ${parsedAssignments.length} giáo viên PCCM`;summarize();return}
         const sheetName=wb.SheetNames.find(n=>n.trim().toUpperCase()==='APP_TKB')||wb.SheetNames[0];rawRows=XLSX.utils.sheet_to_json(wb.Sheets[sheetName],{defval:''});
       }
       parsedRows=rawRows.map(normalizeRow).filter(r=>Boolean(r.subject)&&normalizeHeader(r.subject)!=='nghi'&&normalizeHeader(r.status)!=='nghi'&&![r.class_code,r.subject,r.teacher_code,r.teacher_name].some(isSpreadsheetError));
@@ -178,39 +160,40 @@
   ['dragleave','drop'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.remove('dragover')}));
   dz.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)parseFile(f)});
 
+  const yearKey=value=>String(value||'').replace(/[\s–—-]/g,'');
+  const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+  const versionTitle=v=>'TKB số '+(Number(v.version_no)||'—');
+  function metadata(){
+    if(!el('timetableMetadataForm').reportValidity())return null;
+    const year=canonicalYear(el('schoolYearInput').value),n=Number(el('versionNoInput').value),date=el('effectiveDateInput').value;
+    if(!Number.isInteger(n)||n<1||n>9999||!date)throw Error('Nhập số TKB và ngày áp dụng hợp lệ.');
+    el('schoolYearInput').value=year;
+    return{version_no:n,version_name:'Số '+n,school_name:el('schoolNameInput').value.trim()||'TH & THCS TRẦN PHÚ',school_year:year,semester:el('semesterInput').value,effective_date:date};
+  }
+  function friendlyError(error){const text=String(error?.message||'');if(error?.code==='PGRST202'||/does not exist|schema cache|Offline schema does not include RPC/i.test(text))return 'Cần cập nhật chức năng quản lý bản TKB trên máy chủ trước khi lưu (SQL28).';if(/^(Số TKB|TKB |Bản nháp|Chỉ |Cần |Nhập |Không |Dữ liệu|Dòng )/.test(text))return text;return 'Chưa lưu được TKB. Kiểm tra kết nối và thử lại; bản đang áp dụng được giữ nguyên.';}
+  const confirmAction=options=>window.TranPhuDialog.confirm(options);
   async function publish(){
-    summarize();if(validationErrors.length||!parsedRows.length)return;
-    const valid=validate(parsedRows);
-    let year;try{year=canonicalYear(el('schoolYearInput').value);el('schoolYearInput').value=year;}
-    catch(error){msg(el('publishMessage'),error.message,'error');el('schoolYearInput').focus();return;}
-    const meta={
-      version_name:el('versionNameInput').value.trim()||'Số 1',
-      version_no:Number(el('versionNameInput').value.match(/\d+/)?.[0]||1),
-      school_name:el('schoolNameInput').value.trim()||'TH & THCS TRẦN PHÚ',
-      school_year:year,semester:el('semesterInput').value.trim(),
-      effective_date:el('effectiveDateInput').value||null,status:'draft',is_active:false
-    };
-    el('publishBtn').disabled=true;msg(el('publishMessage'),'Đang lưu dữ liệu lên Supabase…');
-    const{data:duplicates,error:duplicateError}=await sb.from('tkb_versions').select('id').eq('school_year',meta.school_year).eq('semester',meta.semester).eq('version_no',meta.version_no);
-    if(duplicateError){msg(el('publishMessage'),'Không kiểm tra được phiên bản cũ: '+duplicateError.message,'error');el('publishBtn').disabled=false;return}
-    const{data:v,error:ve}=await sb.from('tkb_versions').insert(meta).select('id').single();
-    if(ve){msg(el('publishMessage'),'Không tạo được phiên bản: '+ve.message,'error');el('publishBtn').disabled=false;return}
-    const payload=valid.map(r=>({...r,version_id:v.id}));
-    for(let i=0;i<payload.length;i+=400){
-      const{error}=await sb.from('tkb_entries').insert(payload.slice(i,i+400));
-      if(error){await sb.from('tkb_versions').delete().eq('id',v.id);msg(el('publishMessage'),'Lỗi khi lưu dữ liệu: '+error.message,'error');el('publishBtn').disabled=false;return}
-    }
-    const assignmentPayload=parsedAssignments.map(r=>({...r,version_id:v.id}));
-    if(assignmentPayload.length){const{error}=await sb.from('tkb_assignments').insert(assignmentPayload);if(error){await sb.from('tkb_versions').delete().eq('id',v.id);msg(el('publishMessage'),'Lỗi khi lưu PCCM: '+error.message,'error');el('publishBtn').disabled=false;return}}
-    const{data:current,error:currentError}=await sb.from('tkb_versions').select('id').eq('is_active',true).maybeSingle();
-    if(currentError){msg(el('publishMessage'),currentError.message,'error');el('publishBtn').disabled=false;return}
-    const{data:publication,error:publishError}=await sb.rpc('v4_publish_timetable',{target_version:v.id,expected_current:current?.id||'',sync_permissions:true});
-    if(publishError){msg(el('publishMessage'),'Chưa công bố: '+publishError.message,'error');el('publishBtn').disabled=false;return}
-    window.TkbIntegration?.announce({versionId:v.id});
-    const syncNote=publication.sync?.partial?' Đã đồng bộ tài khoản liên kết; còn tài khoản đang chờ.':publication.sync?.applied?' Phân công đã đồng bộ.':' Phân công chờ đối chiếu: '+(publication.sync?.reason||'kiểm tra tài khoản');
-    const oldIds=(duplicates||[]).map(x=>x.id).filter(id=>id!==v.id);let replaceNote='';
-    if(oldIds.length){const{error:removeError}=await sb.from('tkb_versions').update({status:'archived',is_active:false}).in('id',oldIds);replaceNote=removeError?' Bản cũ chưa lưu trữ được: '+removeError.message:` Đã thay thế ${oldIds.length} bản trùng.`}
-    msg(el('publishMessage'),`Đã công bố ${payload.length} dòng TKB và ${assignmentPayload.length} dòng PCCM.${replaceNote}${syncNote}`,'ok');parsedRows=[];parsedAssignments=[];summarize();loadVersions();
+    if(saving)return;summarize();if(validationErrors.length||!parsedRows.length)return;
+    let meta;try{meta=metadata();if(!meta)return;}catch(error){msg(el('publishMessage'),error.message,'error');return;}
+    const imported=validate(parsedRows).map(row=>({...row})),assignments=parsedAssignments.map(row=>({...row}));
+    saving=true;el('publishBtn').disabled=true;el('fileInput').disabled=true;el('timetableMetadataForm').querySelectorAll('input,select').forEach(field=>field.disabled=true);
+    try{
+      await window.requireTkbAdmin();
+      const r=await sb.from('tkb_versions').select('id,version_no,school_year,semester,status,is_active,published_at,updated_at').eq('version_no',meta.version_no);
+      if(r.error)throw r.error;
+      const matches=(r.data||[]).filter(v=>yearKey(v.school_year)===yearKey(meta.school_year)&&String(v.semester||'').trim()===meta.semester);
+      if(matches.length>1)throw Error('Số TKB đang trùng nhiều bản; cần đối chiếu trước khi nạp. Không tạo thêm bản trùng.');
+      const old=matches[0];
+      if(old&&(old.status!=='draft'||old.is_active||old.published_at))throw Error('Số TKB đã có và đã từng áp dụng. Hãy dùng số khác cho nội dung mới; sửa số/ngày tại bản đã lưu nếu cần đính chính.');
+      if(old&&!await confirmAction({title:'Thay nội dung bản nháp?',message:`TKB số ${meta.version_no} đang là bản nháp. Nội dung của bản nháp này sẽ được thay bằng tệp vừa nạp; TKB đang áp dụng được giữ nguyên.`,confirmLabel:'Thay bản nháp'}))return;
+      msg(el('publishMessage'),'Đang lưu bản nháp TKB…');
+      const saved=await sb.rpc('v4_save_timetable_draft',{meta,entries:imported,assignments,target_version:old?.id||null,expected_updated:old?.updated_at||null});
+      if(saved.error)throw saved.error;
+      focusedVersion=saved.data.version.id;
+      msg(el('publishMessage'),`Đã lưu TKB số ${meta.version_no}, áp dụng từ ${meta.effective_date.split('-').reverse().join('/')}. Chọn “Áp dụng TKB” ở bản đã lưu khi muốn sử dụng.`,'ok');
+      parsedRows=[];parsedAssignments=[];el('fileInput').value='';el('fileSummary').hidden=true;el('versionNoInput').value='';el('effectiveDateInput').value='';await loadVersions();
+    }catch(error){msg(el('publishMessage'),friendlyError(error),'error');}
+    finally{saving=false;el('fileInput').disabled=false;el('timetableMetadataForm').querySelectorAll('input,select').forEach(field=>field.disabled=false);summarize();}
   }
   el('publishBtn').addEventListener('click',publish);
 
@@ -245,30 +228,54 @@
     notice.innerHTML=`<strong>${heading}</strong><details><summary>Xem kết quả kiểm kê</summary><ul>${invalid.map(row=>`<li>${escapeHtml(row.table)}: ${escapeHtml(row.school_year??'(trống)')} · ${Number(row.row_count)} dòng${row.canonical_candidate?' → '+escapeHtml(row.canonical_candidate):''}</li>`).join('')}</ul>${data?.variants?.length?'<p>Các cách viết năm học đang khác nhau. Không tự gộp phiên bản hoặc lịch sử học sinh.</p>':''}<p>Kết quả chỉ đọc. Chưa thay đổi năm học hoặc lịch sử học sinh.</p></details>`;
   }
   async function loadVersions(){
-    const revision=++versionsRevision;
-    const{data,error}=await sb.from('tkb_versions').select('id,version_name,school_year,semester,effective_date,status,is_active,published_at,created_at').order('created_at',{ascending:false}).limit(20);
-    if(revision!==versionsRevision)return;
-    if(error){el('versionsList').innerHTML=`<div class="muted">${escapeHtml(error.message)}</div>`;return}
-    const versions=data||[],ids=versions.map(v=>v.id);
-    const sync=ids.length?await sb.from('v4_tkb_sync_state').select('version_id,status,reason,updated_at').in('version_id',ids):{data:[]};
-    if(revision!==versionsRevision)return;
-    const states=new Map((sync.data||[]).map(state=>[state.version_id,state]));
-    const current=versions.find(v=>v.is_active),live=current?await sb.rpc('v4_preview_published_tkb'):null;
-    if(revision!==versionsRevision)return;
-    const item=v=>`<div class="version-item" data-version-id="${escapeHtml(v.id)}"><div><strong>${escapeHtml(v.version_name||'Phiên bản')}</strong><small>${escapeHtml(v.school_year||'')} · ${escapeHtml(v.semester||'')} · áp dụng ${escapeHtml(v.effective_date||'—')}</small>${!v.is_active?`<small>Mã bản lưu: ${escapeHtml(v.id.slice(-8))} · Tạo ${escapeHtml(new Date(v.created_at).toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh'}))}</small>`:''}${syncLabel(v,states.get(v.id),sync.error,v.is_active?live:null)}</div><div class="version-actions">${v.is_active?'<span class="badge active">Đang công bố</span>':`<button class="secondary-btn" data-activate="${escapeHtml(v.id)}" ${window.TranPhuSchoolYear.isCanonical(v.school_year)?'':'disabled title="Cần đối chiếu năm học trước khi kích hoạt"'}>${window.TranPhuSchoolYear.isCanonical(v.school_year)?'Kích hoạt':'Cần đối chiếu năm học'}</button>`}</div></div>`;
-    const archived=versions.filter(v=>!v.is_active);
-    el('versionsList').innerHTML=versions.length?(current?item(current):'<p>Chưa có TKB đang công bố.</p>')+(archived.length?`<details class="version-archive"><summary>${archived.length} phiên bản lưu</summary>${archived.map(item).join('')}</details>`:''):'<div class="muted">Chưa có phiên bản nào.</div>';
-
-    await loadYearPreflight(revision,versions);
+    const revision=++versionsRevision,versions=[],archiveWasOpen=!!el('versionsList').querySelector('.version-archive[open]');
+    try{
+      for(let start=0;start<10000;start+=1000){const r=await sb.from('tkb_versions').select('id,version_name,version_no,school_year,semester,effective_date,status,is_active,published_at,created_at,updated_at').order('id').range(start,start+999);if(r.error)throw r.error;versions.push(...r.data||[]);if((r.data||[]).length<1000)break;}
+      if(revision!==versionsRevision)return;
+      knownVersions=versions;
+      const group=v=>yearKey(v.school_year)+'|'+String(v.semester||'').trim(),maximum=new Map(),counts=new Map();
+      for(const v of versions){maximum.set(group(v),Math.max(maximum.get(group(v))||0,Number(v.version_no)||0));const k=group(v)+'|'+v.version_no;counts.set(k,(counts.get(k)||0)+1);}
+      versions.sort((a,b)=>yearKey(b.school_year).localeCompare(yearKey(a.school_year))||String(b.semester).localeCompare(String(a.semester),'vi',{numeric:true})||Number(b.version_no)-Number(a.version_no)||String(b.created_at).localeCompare(String(a.created_at)));
+      const ids=versions.map(v=>v.id),sync=ids.length?await sb.from('v4_tkb_sync_state').select('version_id,status,reason,updated_at').in('version_id',ids):{data:[]};
+      if(revision!==versionsRevision)return;
+      const states=new Map((sync.data||[]).map(state=>[state.version_id,state])),current=versions.find(v=>v.is_active),live=current?await sb.rpc('v4_preview_published_tkb'):null;
+      if(revision!==versionsRevision)return;
+      const item=v=>{
+        const canonical=window.TranPhuSchoolYear.isCanonical(v.school_year),due=!!v.effective_date&&v.effective_date<=today(),reason=!canonical?'Cần đối chiếu năm học':!v.effective_date?'Cần nhập ngày áp dụng':!due?'Chưa đến ngày áp dụng':'',duplicate=(counts.get(group(v)+'|'+v.version_no)||0)>1;
+        return `<div class="version-item" data-version-id="${escapeHtml(v.id)}" data-version-number="${Number(v.version_no)||0}"><div class="version-info"><strong>${escapeHtml(versionTitle(v))}</strong>${v.version_no===maximum.get(group(v))?'<span class="version-number-note">Số cao nhất trong học kỳ</span>':''}<small>${escapeHtml(v.school_year||'')} · ${escapeHtml(v.semester||'')} · Áp dụng từ ${v.effective_date?escapeHtml(v.effective_date.split('-').reverse().join('/')):'chưa nhập'}</small>${duplicate?'<small class="version-warning">Có nhiều bản cùng số; cần đối chiếu, không tự gộp dữ liệu.</small>':''}${v.version_name&&v.version_name!==('Số '+v.version_no)?`<small class="version-warning">Tên cũ: ${escapeHtml(v.version_name)} · Dùng “Sửa số / ngày” để xác nhận.</small>`:''}${!v.is_active?`<small>${v.status==='draft'?'Bản nháp · Chưa áp dụng':'Bản lưu'}${!due&&v.effective_date?' · Chờ ngày áp dụng':''}</small><details class="version-id"><summary>Thông tin bản lưu</summary><small>Mã: ${escapeHtml(v.id.slice(-8))} · Tạo ${escapeHtml(new Date(v.created_at).toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh'}))}</small></details>`:''}${syncLabel(v,states.get(v.id),sync.error,v.is_active?live:null)}</div><div class="version-actions">${v.is_active?'<span class="badge active">Đang áp dụng</span>':`<button class="secondary-btn" data-activate="${escapeHtml(v.id)}" ${reason?'disabled title="'+escapeHtml(reason)+'"':''}>${reason||'Áp dụng TKB'}</button>`}<button type="button" class="secondary-btn" data-edit-version="${escapeHtml(v.id)}">Sửa số / ngày</button></div></div>`;
+      };
+      const other=versions.filter(v=>!v.is_active);
+      el('versionsList').innerHTML=versions.length?(current?item(current):'<p>Chưa có TKB được quản trị xác nhận áp dụng.</p>')+(other.length?`<details class="version-archive" ${focusedVersion||archiveWasOpen?'open':''}><summary>${other.length} bản chờ / bản lưu · Sắp theo số TKB giảm dần</summary>${other.map(item).join('')}</details>`:''):'<div class="muted">Chưa có bản TKB nào.</div>';
+      if(focusedVersion){el('versionsList').querySelector(`[data-version-id="${focusedVersion}"]`)?.scrollIntoView({block:'nearest',behavior:'auto'});focusedVersion='';}
+      suggestNumber();await loadYearPreflight(revision,versions);
+    }catch(error){if(revision===versionsRevision)el('versionsList').textContent='Chưa tải được các bản TKB. Bấm Làm mới để thử lại.';}
+  }
+  function suggestNumber(){if(el('versionNoInput').value)return;const same=knownVersions.filter(v=>yearKey(v.school_year)===yearKey(el('schoolYearInput').value)&&v.semester===el('semesterInput').value);el('versionNoInput').value=String(Math.max(0,...same.map(v=>Number(v.version_no)||0))+1);}
+  el('schoolYearInput').addEventListener('change',()=>{el('versionNoInput').value='';suggestNumber();});el('semesterInput').addEventListener('change',()=>{el('versionNoInput').value='';suggestNumber();});
+  function editMetadata(version){
+    const content=document.createElement('div');content.className='timetable-metadata-editor';content.innerHTML=`<p>${escapeHtml(version.school_year||'')} · ${escapeHtml(version.semester||'')}</p><form id="editTkbMetadata"><label>TKB số<input id="editTkbNumber" type="number" min="1" max="9999" step="1" value="${Number(version.version_no)||1}" required></label><label>Ngày áp dụng<input id="editTkbDate" type="date" min="2000-01-01" max="2100-12-31" value="${escapeHtml(version.effective_date||'')}" required></label><p id="editTkbMessage" role="alert" hidden></p><button id="saveTkbMetadata" class="primary-btn" type="submit">Lưu thông tin</button></form>`;
+    const field=id=>content.querySelector('#'+id);
+    const modal=window.TranPhuDialog.content({title:'Sửa số / ngày áp dụng',content,initialFocus:'#editTkbNumber'});let busy=false;
+    content.querySelector('form').onsubmit=async event=>{event.preventDefault();if(busy||!event.target.reportValidity())return;busy=true;modal.setBusy(true);field('saveTkbMetadata').disabled=true;field('editTkbMessage').hidden=true;
+      try{const r=await sb.rpc('v4_set_timetable_metadata',{target_version:version.id,num:Number(field('editTkbNumber').value),applies:field('editTkbDate').value,expected_updated:version.updated_at});if(r.error)throw r.error;modal.close(true);focusedVersion=version.id;if(version.is_active)window.TkbIntegration?.announce({versionId:version.id});await loadVersions();msg(el('publishMessage'),'Đã cập nhật số và ngày áp dụng; nội dung TKB được giữ nguyên.','ok');}
+      catch(error){field('editTkbMessage').textContent=friendlyError(error);field('editTkbMessage').hidden=false;}
+      finally{busy=false;modal.setBusy(false);if(field('saveTkbMetadata'))field('saveTkbMetadata').disabled=false;}
+    };
   }
   el('refreshVersionsBtn').addEventListener('click',loadVersions);
   window.addEventListener('tkb:published',()=>{if(approvedUser)loadVersions();});
+  let activating=false;
   el('versionsList').addEventListener('click',async e=>{
-    const b=e.target.closest('[data-activate]');if(!b)return;const id=b.dataset.activate;
-    const{data:current,error:readError}=await sb.from('tkb_versions').select('id').eq('is_active',true).maybeSingle();
-    if(readError)return await alertPortal(readError.message);
-    const{data,error}=await sb.rpc('v4_publish_timetable',{target_version:id,expected_current:current?.id||'',sync_permissions:true});
-    if(error)await alertPortal(error.message);else{window.TkbIntegration?.announce({versionId:id});msg(el('publishMessage'),data.sync?.partial?'Đã kích hoạt và đồng bộ tài khoản đã liên kết; còn tài khoản đang chờ.':data.sync?.applied?'Đã kích hoạt và đồng bộ phân công.':'Đã kích hoạt. Phân công chờ đối chiếu: '+(data.sync?.reason||''),data.sync?.applied?'ok':'error');loadVersions();}
+    const edit=e.target.closest('[data-edit-version]');if(edit){const v=knownVersions.find(v=>v.id===edit.dataset.editVersion);if(v)editMetadata(v);return;}
+    const b=e.target.closest('[data-activate]');if(!b||b.disabled||activating)return;const version=knownVersions.find(v=>v.id===b.dataset.activate);if(!version)return;
+    activating=true;b.disabled=true;
+    try{
+      const current=await sb.from('tkb_versions').select('id,version_no').eq('is_active',true).maybeSingle();if(current.error)throw current.error;
+      const lower=current.data&&Number(version.version_no)<Number(current.data.version_no)?' Bản này có số thấp hơn bản đang dùng.':'';
+      if(!await confirmAction({title:'Áp dụng '+versionTitle(version)+'?',message:`Toàn trường sẽ sử dụng ${versionTitle(version)}, ngày áp dụng ${version.effective_date.split('-').reverse().join('/')}. Phân công giáo viên được đối chiếu và đồng bộ theo bản này.${lower}`,confirmLabel:'Xác nhận áp dụng'}))return;
+      const applied=await sb.rpc('v4_activate_timetable',{target_version:version.id,expected_updated:version.updated_at,expected_current:current.data?.id||''});if(applied.error)throw applied.error;
+      window.TkbIntegration?.announce({versionId:version.id});const sync=applied.data.sync;msg(el('publishMessage'),sync?.partial?'Đã áp dụng TKB và đồng bộ tài khoản đã liên kết; còn tài khoản đang chờ.':sync?.applied?'Đã áp dụng TKB và đồng bộ phân công.':'Đã áp dụng TKB. Phân công chờ đối chiếu: '+(sync?.reason||''),'ok');await loadVersions();
+    }catch(error){await alertPortal(friendlyError(error));}finally{activating=false;if(b.isConnected)b.disabled=false;}
   });
   sessionCheck();
 })();

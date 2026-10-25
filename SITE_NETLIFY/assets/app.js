@@ -39,23 +39,24 @@
   function versionRank(v){
     const year=Number((v.school_year||'').match(/\d{4}/)?.[0]||0);
     const semester=Number((v.semester||'').match(/\d+/)?.[0]||0);
-    return [year,semester,Number(v.version_no)||Number((v.version_name||'').match(/\d+/)?.[0]||0),new Date(v.published_at||0).getTime()];
+    return [year,semester,Number(v.version_no)||0,new Date(v.published_at||0).getTime()];
   }
-  function uniqueVersions(list){const seen=new Set();return(list||[]).filter(v=>{const key=`${v.school_year}|${v.semester}|${Number(v.version_no)||Number((v.version_name||'').match(/\d+/)?.[0]||0)}`;if(seen.has(key))return false;seen.add(key);return true})}
+  function uniqueVersions(list){const seen=new Set();return [...list||[]].sort((a,b)=>Number(b.is_active)-Number(a.is_active)||String(b.published_at||'').localeCompare(String(a.published_at||''))).filter(v=>{const key=`${String(v.school_year||'').replace(/[^0-9]/g,'')}|${v.semester}|${Number(v.version_no)||0}`;if(seen.has(key))return false;seen.add(key);return true})}
   function newestVersion(list){return [...list].sort((a,b)=>{const x=versionRank(a),y=versionRank(b);for(let i=0;i<x.length;i++){if(x[i]!==y[i])return y[i]-x[i]}return 0})[0]||null}
-  function versionLabel(v){const latest=newestVersion(state.versions)?.id===v.id?' — mới nhất':'';return `${v.school_year||'Năm học'} · ${v.semester||'Học kỳ'} · ${v.version_name||`Số ${v.version_no||''}`}${latest}`}
+  const versionTitle=v=>'Số '+(Number(v.version_no)||'—');
+  function versionLabel(v){const label=v.is_active?' — đang áp dụng':newestVersion(state.versions)?.id===v.id?' — số cao nhất':'';return `${v.school_year||'Năm học'} · ${v.semester||'Học kỳ'} · ${versionTitle(v)}${label}`}
   function buildVersionSelect(){const sorted=[...state.versions].sort((a,b)=>{const x=versionRank(a),y=versionRank(b);for(let i=0;i<x.length;i++){if(x[i]!==y[i])return y[i]-x[i]}return 0});el('versionSelect').innerHTML=sorted.map(v=>`<option value="${esc(v.id)}">${esc(versionLabel(v))}</option>`).join('');if(state.version)el('versionSelect').value=state.version.id}
   function calendar(){return state.calendars.find(c=>normalized(c.school_year)===normalized(state.version?.school_year));}
   function weekStatus(){try{return calendar()?SchoolCalendar.current(calendar()):{status:'missing',week:null};}catch(e){return {status:'invalid',week:null,error:e.message};}}
   function automaticWeek(){return weekStatus().week||1;}
-  function currentVersion(list,day=SchoolCalendar.today()){return window.TkbIntegration?.liveVersion(list)||SchoolCalendar.version(list,day)||null;}
+  function currentVersion(list){let integration=window.TkbIntegration;try{integration=integration||window.parent.TkbIntegration;}catch{}return integration?.liveVersion(list)||null;}
 
   async function loadData(){
     setSync('Đang mở dữ liệu trên máy…');
     try{snapshot=await TkbStore.get();}catch(e){setSync('Không mở được bộ nhớ thiết bị: '+e.message,'warn');}
     if(snapshot){applySnapshot(snapshot);const requested=new URL(location.href).searchParams.get('version'),target=requested?state.versions.find(v=>v.id===requested):currentVersion(state.versions);if(target&&target.id!==state.version.id&&navigator.onLine)try{await install(await TkbStore.manifest(),target);}catch(e){setSync(e.message+' Bản đang xem có thể đã cũ.','warn');}checkUpdates(false);return;}
     try{const m=await TkbStore.manifest();if(!m.versions.length){el('emptyState').hidden=false;setSync('Chưa có TKB công bố');return;}
-      const q=new URL(location.href).searchParams,v=m.versions.find(v=>v.id===q.get('version'))||currentVersion(m.versions);if(!v)throw Error('Chưa có TKB đến ngày hiệu lực.');await install(m,v);
+      const q=new URL(location.href).searchParams,v=m.versions.find(v=>v.id===q.get('version'))||currentVersion(m.versions);if(!v)throw Error('Chưa có TKB được quản trị xác nhận áp dụng.');await install(m,v);
     }catch(e){setSync('Chưa có bản lưu. Cần mạng để tải lần đầu. '+e.message,'warn');el('emptyState').hidden=false;}
   }
 
@@ -83,9 +84,9 @@
   }
   async function checkUpdates(manual){
     if(syncBusy||checkBusy)return;checkBusy=true;
-    try{const m=await TkbStore.manifest();if(!snapshot){const v=currentVersion(m.versions);if(v)await install(m,v);else setSync('Chưa có TKB đến ngày hiệu lực');return;}
-      if(m.key!==snapshot.manifest.key){const live=currentVersion(m.versions);if(!manual&&snapshot.version.is_active&&live&&live.id!==state.version.id){await install(m,live);return;}pendingManifest=m;el('updateNotice').hidden=!manual&&deferredKey===m.key;const newer=newestVersion(m.versions)?.id!==state.version.id||m.versions.find(v=>v.id===state.version.id)?.updated_at!==state.version.updated_at;const message=newer?'Đã có TKB mới hơn. Bạn có cập nhật không?':'Đã có dữ liệu PPCT/PDF mới. Bạn có cập nhật không?';el('updateNotice').querySelector('strong').textContent=message;setSync(newer?'Đã có TKB mới hơn':'Đã có dữ liệu mới','warn');}
-      else{pendingManifest=null;el('updateNotice').hidden=true;showVersionStatus(m);if(manual)toast(newestVersion(m.versions)?.id===state.version.id?'Bản mới nhất.':'Bạn đang chọn TKB cũ; có thể chuyển về bản mới nhất.');}
+    try{const m=await TkbStore.manifest();if(!snapshot){const v=currentVersion(m.versions);if(v)await install(m,v);else setSync('Chưa có TKB được quản trị xác nhận áp dụng');return;}
+      if(m.key!==snapshot.manifest.key){const live=currentVersion(m.versions);if(!manual&&snapshot.version.is_active&&live&&live.id!==state.version.id){await install(m,live);return;}pendingManifest=m;el('updateNotice').hidden=!manual&&deferredKey===m.key;const newer=!!live&&live.id!==state.version.id||m.versions.find(v=>v.id===state.version.id)?.updated_at!==state.version.updated_at;const message=newer?'TKB đang áp dụng đã được quản trị cập nhật. Bạn có cập nhật không?':'Đã có dữ liệu PPCT/PDF mới. Bạn có cập nhật không?';el('updateNotice').querySelector('strong').textContent=message;setSync(newer?'TKB đang áp dụng đã thay đổi':'Đã có dữ liệu mới','warn');}
+      else{pendingManifest=null;el('updateNotice').hidden=true;showVersionStatus(m);if(manual)toast(currentVersion(m.versions)?.id===state.version.id?'Đang xem TKB hiện hành.':'Bạn đang xem bản lưu; có thể chuyển về TKB hiện hành.');}
     }catch(e){if(manual)toast('Không kiểm tra được cập nhật. Tiếp tục dùng dữ liệu đã lưu.');setSync(navigator.onLine?'Chưa kiểm tra được bản mới':'Ngoại tuyến · Chưa kiểm tra bản mới','warn');}
     finally{checkBusy=false;}
   }
@@ -159,7 +160,7 @@
     if(['ppct','pdf','teaching'].includes(state.mode)){el('scheduleDocument').hidden=true;el('assignmentDocument').hidden=true;el('plansDocument').hidden=false;if(state.mode==='teaching')renderTeachingReport();else renderPlans();return;}
     if(state.mode==='pccm'){el('scheduleDocument').hidden=true;el('assignmentDocument').hidden=false;renderAssignments(el('searchInput').value);return}
     if(!state.selected)return;el('scheduleDocument').hidden=false;el('assignmentDocument').hidden=true;
-    el('versionName').textContent=v.version_name||'';el('effectiveDate').textContent=display==='lesson'?`Tuần đang thực hiện: Tuần ${week}`:(v.effective_date?`(Thực hiện từ ngày ${formatDateISO(v.effective_date)})`:'');
+    el('versionName').textContent=versionTitle(v);el('effectiveDate').textContent=display==='lesson'?`Tuần đang thực hiện: Tuần ${week}`:(v.effective_date?`(Thực hiện từ ngày ${formatDateISO(v.effective_date)})`:'');
     el('entityTitle').textContent=state.mode==='class'?`Lớp ${state.selected.id}`:`Giáo viên ${state.selected.label}`;
     if(state.mode==='class')el('sideInfo').textContent=state.selected.homeroom?`GVCN: ${state.selected.homeroom}`:'';
     else{const cn=state.classes.find(c=>c.homeroom===state.selected.label);el('sideInfo').textContent=cn?`GVCN lớp ${cn.id}`:'';}
@@ -172,9 +173,9 @@
   function renderAssignments(query=''){
     const q=safeSearch(query),items=state.assignments.filter(a=>!q||safeSearch(`${a.teacher_name} ${a.duty||''} ${a.homeroom_class||''} ${a.teaching_assignment||''}`).includes(q));
     el('assignmentTitle').textContent=`${state.version.school_year||''} · ${state.version.semester||''}`;
-    el('assignmentVersion').textContent=state.version.version_name||'';
+    el('assignmentVersion').textContent=versionTitle(state.version);
     el('assignmentList').innerHTML=items.map(a=>`<article class="assignment-card"><div class="assignment-person"><span>${a.ordinal||''}</span><div><strong>${esc(a.teacher_name)}</strong><small>${esc([a.duty,a.homeroom_class?`CN ${a.homeroom_class}`:''].filter(Boolean).join(' · '))}</small></div>${a.period_count?`<b>${a.period_count} tiết</b>`:''}</div><p>${esc(a.teaching_assignment||'—')}</p></article>`).join('')||'<div class="empty-inline">Không có dữ liệu phân công phù hợp.</div>';
-    document.title=`PCCM ${state.version.version_name||''} | TH & THCS Trần Phú`;
+    document.title=`PCCM ${versionTitle(state.version)} | TH & THCS Trần Phú`;
   }
   function safeSearch(value=''){return folded(value)}
 
@@ -270,7 +271,7 @@
   el('currentWeek').onclick=()=>changeWeek(automaticWeek(),false);el('reportSubject').onchange=e=>{reportSubject=e.target.value;renderTeachingReport();};
   el('checkUpdate').onclick=()=>checkUpdates(true);el('deferUpdate').onclick=()=>{deferredKey=pendingManifest?.key;el('updateNotice').hidden=true;toast('Tiếp tục dùng bản đang lưu.');};
   el('refreshAllData').onclick=async()=>{if(!await confirmPortal('Xóa dữ liệu TKB, PCCM, PPCT và giao diện cũ đang lưu trên thiết bị, sau đó tải lại toàn bộ bản mới.',{title:'Tải lại toàn bộ dữ liệu?',confirmLabel:'Xóa và tải lại',tone:'warning'}))return;const button=el('refreshAllData');button.disabled=true;setSync('Đang xóa bộ nhớ đệm và chuẩn bị tải bản mới…','warn');try{await TkbStore.purge();if('serviceWorker'in navigator){const registrations=await navigator.serviceWorker.getRegistrations();await Promise.all(registrations.map(r=>r.unregister()));}const u=new URL(location.href);u.searchParams.set('_refresh',Date.now());location.replace(u.href);}catch(e){button.disabled=false;setSync('Không xóa được bộ nhớ đệm: '+e.message,'warn');}};
-  el('acceptUpdate').onclick=async()=>{try{const m=await TkbStore.manifest(),v=currentVersion(m.versions);if(v)await install(m,v);else toast('Không còn TKB đã đến ngày hiệu lực.');}catch(e){setSync('Không cập nhật được; vẫn giữ bản cũ. '+e.message,'warn');}};
+  el('acceptUpdate').onclick=async()=>{try{const m=await TkbStore.manifest(),v=currentVersion(m.versions);if(v)await install(m,v);else toast('Chưa có TKB được quản trị xác nhận áp dụng.');}catch(e){setSync('Không cập nhật được; vẫn giữ bản cũ. '+e.message,'warn');}};
   el('storageInfo').onclick=()=>alertPortal('Thiết bị giữ 1 bộ dữ liệu TKB, PCCM và PPCT ('+(new Blob([JSON.stringify(snapshot)]).size/1048576).toFixed(2)+' MB), cùng giao diện ngoại tuyến. PDF không lưu ngoại tuyến. Trình duyệt có thể giải phóng dữ liệu khi thiếu dung lượng hoặc khi bạn xóa dữ liệu duyệt web.');
   window.addEventListener('focus',()=>{if(!document.hidden&&navigator.onLine)checkUpdates(false);});
   window.addEventListener('online',()=>checkUpdates(false));window.addEventListener('offline',()=>setSync('Ngoại tuyến · Chưa kiểm tra bản mới','warn'));document.addEventListener('visibilitychange',()=>{if(!document.hidden&&navigator.onLine)checkUpdates(false);});setInterval(()=>{if(document.hidden||window.frameElement?.closest('[hidden]'))return;if(navigator.onLine)checkUpdates(false);if(!weekIsManual){const current=automaticWeek();if(current!==week)changeWeek(current,false);}},120000);

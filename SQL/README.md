@@ -1,1 +1,1 @@
-Chạy00 chỉ đọc trước. Đã có23:07 rồi03. Đã có21:05 rồi07 rồi03. Đã có20:02 rồi05 rồi07 rồi03. Chưa có module:01 rồi03.04 tùy hiện trạng,06 chỉ đọc kiểm kê. Không chạy tất cả. Xem README.md ở gốc gói Git để biết hướng dẫn đầy đủ.
+Chay00 chi doc truoc. Co26/SQL08: backup ->09 ->03. Co25:08 ->09 ->03. Co23:07 ->08 ->09 ->03. Co21:05 ->07 ->08 ->09 ->03. Co20:02 ->05 ->07 ->08 ->09 ->03. Chua co module:01 ->03.04 tuy hien trang,06 chi doc. Khong chay tat ca file. Sau09 khong chay lai08 rieng vi se thay ham29. Xem README.md goc goi.

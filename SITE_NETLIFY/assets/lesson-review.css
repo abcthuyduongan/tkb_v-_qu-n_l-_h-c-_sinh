@@ -33,9 +33,16 @@
  .dailyHandoffRow p{margin:8px 0 0;font-size:13px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--tp-text)}
  .dailyHandoff .inline-error{padding:10px;margin:8px 0;border:1px solid #c52d48;border-radius:var(--tp-radius-control);background:var(--tp-danger-soft);font-size:13px;color:var(--tp-danger)}
  .dailyHandoff .inline-error .btn{margin-top:8px;min-height:44px}
- .report-error{padding:12px;border:1px solid #c52d48;border-radius:var(--tp-radius-control);background:var(--tp-danger-soft);color:var(--tp-danger)}
- .report-error .btn{margin-top:8px;min-height:44px}
- #appView #progressPage.teacher-week-view .report-filters{grid-template-columns:minmax(150px,1fr) minmax(160px,2fr)}
+ .report-state{display:flex;align-items:flex-start;gap:16px;padding:24px;margin-top:18px;border:1px solid var(--tp-border,#dce5ef);border-radius:12px;background:#f8fbff;color:var(--tp-text,#14284b);max-width:820px}
+ .report-state-icon{display:flex;align-items:center;justify-content:center;flex:0 0 40px;width:40px;height:40px;border-radius:12px;background:#e6effc;color:#075cc2;font-size:20px;font-weight:700}
+ .report-state-content{min-width:0;flex:1}.report-state-content h3{margin:0 0 6px!important;font-size:16px!important;line-height:1.45}.report-state-content p{margin:0;color:var(--tp-muted,#526681);font-size:14px;line-height:1.65;max-width:65ch;overflow-wrap:anywhere}
+ .report-state--error{background:#fffcfc;border-color:#ead9de}.report-state--error .report-state-icon{background:#fbe9ee;color:#a32f4a}
+ .report-state-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.report-state-actions .btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;margin:0;text-decoration:none;font-size:13px!important}
+ .report-week-picker{display:flex;gap:12px;align-items:flex-end}.report-week-picker[hidden]{display:none}.report-week-picker>label{flex:1;min-width:170px}.report-week-actions{display:flex;gap:6px}.report-week-actions .btn{min-width:44px;min-height:44px}
+ #appView #progressPage.teacher-week-view .report-filters{align-items:end;border-bottom:0;padding-bottom:0;margin-bottom:12px}
+ @media(max-width:700px){.report-state{padding:18px;gap:12px}.report-state-icon{flex-basis:34px;width:34px;height:34px;border-radius:10px}.report-week-picker{flex-wrap:wrap}.report-week-picker>label{flex-basis:100%}.report-week-actions{width:100%}.report-week-actions #reportWeekCurrent{flex:1}.report-state-actions .btn{flex:1 1 140px}}
+
+ #appView #progressPage.teacher-week-view .report-filters{grid-template-columns:minmax(150px,1fr) minmax(280px,2fr)}
  @media(prefers-reduced-motion:no-preference){
   #appView .seat.day-state-outstanding,#appView .rosterStudent.day-state-outstanding{animation:daily-note-glow 3s ease-in-out 2}
   @keyframes daily-note-glow{0%,100%{box-shadow:inset 0 3px 0 #166534}50%{box-shadow:inset 0 3px 0 #166534,0 0 0 3px #16653424}}
@@ -44,3 +51,37 @@
 }
 
 @media screen{.lessonAvailability{font-size:14px;line-height:1.55;color:var(--tp-muted);margin:8px 0 16px}.lessonAvailability:empty{display:none}.current-lesson #homeLessonSummary{flex-wrap:wrap}.current-lesson #lessonHint{font-size:13px;line-height:1.5}.current-lesson #lessonSelection[hidden]{display:none}}
+
+/* Previous lessons stay beside the scheduled class, with details on demand. */
+@media screen {
+ #appView .home-lesson-history{margin:20px 0 0;padding:18px 0 0;border:0;border-top:1px solid var(--tp-border);border-radius:0;background:transparent}
+ #appView .lesson-history-heading{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 12px;align-items:center;margin-bottom:8px}
+ #appView .lesson-history-heading h3{margin:0;font-size:16px;line-height:1.4;font-weight:650;color:var(--tp-text)}
+ #appView .lesson-history-heading>span{font-size:12px;line-height:1.5;color:var(--tp-muted)}
+ #appView .lesson-history-heading>.btn{grid-column:2;grid-row:1/3;min-height:44px;padding:8px 10px;font-size:12px}
+ #appView .lesson-history-row{padding:0;border-top:1px solid var(--tp-border)}
+ #appView .lesson-history-row>summary{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;align-items:start;min-height:44px;padding:13px 24px 13px 0;cursor:pointer;list-style:none}
+ #appView .lesson-history-row>summary::-webkit-details-marker{display:none}
+ #appView .lesson-history-row>summary::after{content:'›';position:absolute;right:2px;top:11px;font-size:22px;line-height:1;color:var(--tp-muted);transform:rotate(90deg)}
+ #appView .lesson-history-row[open]>summary::after{transform:rotate(-90deg)}
+ #appView .lesson-history-row>summary:focus-visible{outline:3px solid var(--tp-primary);outline-offset:2px;border-radius:var(--tp-radius-control)}
+ #appView .handoff-slot{font-size:14px;line-height:1.5;font-weight:650;overflow-wrap:anywhere;color:var(--tp-text)}
+ #appView .handoff-slot>small{font-size:12px;line-height:1.5;font-weight:400;color:var(--tp-muted);margin-top:2px}
+ #appView .handoff-row-source{display:inline-block;width:fit-content;max-width:100%;padding:3px 7px;border-radius:6px;font-size:11px;line-height:1.5;font-weight:500;color:var(--tp-muted);background:var(--tp-primary-soft)}
+ #appView .handoff-row-source.teacher{color:var(--tp-success);background:var(--tp-success-soft)}
+ #appView .handoff-preview{grid-column:1/-1;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:13px;line-height:1.5;font-weight:400;color:var(--tp-text);overflow-wrap:anywhere}
+ #appView .handoff-detail{padding:0 0 14px}
+ #appView .handoff-detail .handoff-review-note{margin:0 0 10px;padding:10px 12px;background:var(--tp-primary-soft);border-radius:var(--tp-radius-control);font-size:13px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
+ #appView .handoff-groups{display:grid;gap:8px;margin:0}
+ #appView .handoff-group{padding:9px 12px;border-left:3px solid var(--tp-warning);background:var(--tp-warning-soft);border-radius:0 6px 6px 0}
+ #appView .handoff-group.positive{border-left-color:var(--tp-success);background:var(--tp-success-soft)}
+ #appView .handoff-group dt{font-size:13px;line-height:1.5;font-weight:650;color:var(--tp-text);overflow-wrap:anywhere}
+ #appView .handoff-group dt>small{display:inline;margin-left:8px;font-size:12px;font-weight:400;color:var(--tp-muted)}
+ #appView .handoff-group dd{margin:4px 0 0;font-size:13px;line-height:1.6;color:var(--tp-text);overflow-wrap:anywhere}
+ #appView .handoff-empty,#appView .handoff-read-error p,#appView .handoff-detail-status{margin:10px 0;font-size:13px;line-height:1.6;color:var(--tp-muted)}
+ #appView .handoff-read-error{padding:0 0 12px}
+ @media(max-width:520px){
+  #appView .lesson-history-row>summary{grid-template-columns:minmax(0,1fr)}
+  #appView .handoff-row-source{font-size:12px}
+ }
+}
