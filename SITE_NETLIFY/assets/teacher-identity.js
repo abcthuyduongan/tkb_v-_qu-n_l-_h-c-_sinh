@@ -28,5 +28,22 @@
   for(const t of assignments)if(!items.some(i=>key(i.teacher_name)===key(t.teacher_name)))items.push({teacher_code:'PCCM_'+(t.ordinal||key(t.teacher_name)),teacher_name:t.teacher_name,subjects:[],classes:[],homeroom_class:t.homeroom_class||'',resolved:true});
   return items.sort((a,b)=>a.teacher_name.localeCompare(b.teacher_name,'vi'));
  }
- root.TranPhuTeacherIdentity=Object.freeze({key,subject,assigned,resolve,nameMap,enrich,catalog,validUsername,loginEmail,suggestUsername});
+ function syncSummary(entries=[],assignments=[],accounts=[]){
+  const teaching=entries.filter(e=>!e.status||e.status==='Học'),people=catalog(teaching,assignments),pending=[],issues=[],linked=[];
+  for(const person of people){
+   const matches=accounts.filter(a=>key(a.teacher_code)===key(person.teacher_code)||person.teacher_name&&key(a.teacher_name)===key(person.teacher_name));
+   const unique=[...new Map(matches.map(a=>[a.user_id,a])).values()];
+   const item={...person,label:person.teacher_name||person.teacher_code};
+   if(!person.resolved){issues.push({...item,reason:'Chưa xác định được họ tên từ TKB/PCCM'});continue;}
+   if(unique.length>1){issues.push({...item,reason:'Có nhiều tài khoản khớp giáo viên'});continue;}
+   if(unique.length===1&&key(unique[0].teacher_name)!==key(person.teacher_name)){issues.push({...item,reason:'Tên tài khoản khác hồ sơ PCCM'});continue;}
+   if(unique.length)linked.push({...item,user_id:unique[0].user_id});else pending.push(item);
+  }
+  const classes=[...new Set(teaching.map(e=>e.class_code).filter(Boolean))];
+  const homes=new Map();for(const a of assignments)if(String(a.homeroom_class||'').trim()){const c=String(a.homeroom_class).trim();if(!homes.has(c))homes.set(c,new Set());homes.get(c).add(key(a.teacher_name));}
+  for(const c of classes){const owners=homes.get(c);if(!owners?.size)issues.push({label:'Lớp '+c,reason:'PCCM chưa có giáo viên chủ nhiệm'});else if(owners.size>1)issues.push({label:'Lớp '+c,reason:'PCCM có nhiều giáo viên chủ nhiệm'});}
+  return {people,pending,issues,linked,classes,teachingTeachers:new Set(teaching.map(e=>key(e.teacher_code)).filter(Boolean)).size,
+   homeroomClasses:homes.size,linkedHomerooms:[...homes.values()].filter(names=>names.size===1&&linked.some(p=>names.has(key(p.teacher_name)))).length};
+ }
+ root.TranPhuTeacherIdentity=Object.freeze({key,subject,assigned,resolve,nameMap,enrich,catalog,syncSummary,validUsername,loginEmail,suggestUsername});
 })(typeof window==='undefined'?globalThis:window);

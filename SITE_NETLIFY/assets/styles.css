@@ -58,3 +58,5 @@ button,input,select{font:inherit}button,a{touch-action:manipulation}.topbar{posi
  .plan-actions a,.ghost-link,.site-footer a{display:inline-flex;align-items:center;min-height:44px}
  .metric strong{font-size:24px}
 }
+
+.admin-page .version-item{align-items:flex-start;gap:16px}.admin-page .version-item>div:first-child{min-width:0;flex:1;overflow-wrap:anywhere}.admin-page .version-item .version-sync{display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin-top:10px}.admin-page .version-sync .secondary-btn{display:inline-flex;margin-top:2px}.admin-page .version-archive{margin-top:16px}.admin-page .version-archive>summary{padding:12px 0;font-weight:600;cursor:pointer}.admin-page .version-actions{flex-shrink:0}@media(max-width:700px){.admin-page .version-item{flex-direction:column}.admin-page .version-actions{width:100%}}

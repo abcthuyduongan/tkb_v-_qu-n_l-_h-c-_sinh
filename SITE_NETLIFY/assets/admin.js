@@ -207,7 +207,7 @@
     const{data:publication,error:publishError}=await sb.rpc('v4_publish_timetable',{target_version:v.id,expected_current:current?.id||'',sync_permissions:true});
     if(publishError){msg(el('publishMessage'),'Chưa công bố: '+publishError.message,'error');el('publishBtn').disabled=false;return}
     window.TkbIntegration?.announce({versionId:v.id});
-    const syncNote=publication.sync?.applied?' Phân công đã đồng bộ.':' Phân công chờ đối chiếu: '+(publication.sync?.reason||'kiểm tra tài khoản');
+    const syncNote=publication.sync?.partial?' Đã đồng bộ tài khoản liên kết; còn tài khoản đang chờ.':publication.sync?.applied?' Phân công đã đồng bộ.':' Phân công chờ đối chiếu: '+(publication.sync?.reason||'kiểm tra tài khoản');
     const oldIds=(duplicates||[]).map(x=>x.id).filter(id=>id!==v.id);let replaceNote='';
     if(oldIds.length){const{error:removeError}=await sb.from('tkb_versions').update({status:'archived',is_active:false}).in('id',oldIds);replaceNote=removeError?' Bản cũ chưa lưu trữ được: '+removeError.message:` Đã thay thế ${oldIds.length} bản trùng.`}
     msg(el('publishMessage'),`Đã công bố ${payload.length} dòng TKB và ${assignmentPayload.length} dòng PCCM.${replaceNote}${syncNote}`,'ok');parsedRows=[];parsedAssignments=[];summarize();loadVersions();
@@ -215,15 +215,23 @@
   el('publishBtn').addEventListener('click',publish);
 
   let versionsRevision=0;
-  function syncLabel(version,state,readError){
+  function syncLabel(version,state,readError,live){
     if(version.status!=='published'&&!version.published_at&&!version.is_active)return '';
-    const status=readError?'unknown':state?.status||'unknown';
-    const text=status==='synced'?'Phân công đã đồng bộ':status==='pending'?'Phân công chờ đối chiếu':'Chưa xác định đồng bộ';
-    const reason=readError?'Không đọc được trạng thái. Bấm Làm mới để thử lại; nếu vẫn lỗi, kiểm tra quyền quản trị và cập nhật cơ sở dữ liệu.':state?.reason||
-      (status==='unknown'?'Phiên bản này chưa có kết quả đồng bộ được lưu.':'');
-    const action=version.is_active&&status!=='synced'?'<small>Mở Quản trị → Đồng bộ TKB, đối chiếu tài khoản và quyền rồi áp dụng.</small><a class="secondary-btn" href="/?page=admin#syncTkb" target="_top">Đối chiếu phân công</a>':'';
-    return `<div class="version-sync" data-sync-status="${escapeHtml(status)}" role="status"><small><strong>${escapeHtml(text)}</strong>${state?.updated_at&&!readError?' · '+escapeHtml(new Date(state.updated_at).toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh'})):''}</small>${reason?`<small>${escapeHtml(reason)}</small>`:''}${action}</div>`;
+    if(!version.is_active)return '<small class="muted">Bản lưu · Không áp dụng phân công hiện tại</small>';
+    const status=readError||live?.error?'unknown':live?.data?.partial?'pending':state?.status||'unknown',preview=live?.data;
+    let text=status==='synced'?'Phân công đã đồng bộ':status==='pending'?'Phân công chờ đối chiếu':'Chưa kiểm tra được phân công';
+    let reason=readError||live?.error?'Chưa đọc được đối chiếu hiện tại. Bấm Làm mới để thử lại.':state?.reason||'';
+    if(preview&&!readError&&!live?.error){
+     const changes=(preview.added||[]).length+(preview.removed||[]).length;
+     if(preview.reason){text='Cần đối chiếu phân công';reason=preview.reason;}
+     else if(preview.partial){text=changes?'Có tài khoản đã liên kết cần đồng bộ':'Các tài khoản đã liên kết đang khớp TKB';reason='Còn giáo viên chưa có tài khoản liên kết. Chỉ đồng bộ phần đã xác minh, chưa thu hồi quyền cũ.';}
+     else if(changes){text='Có thay đổi phân công cần áp dụng';reason=`Thêm ${(preview.added||[]).length} · Thu hồi ${(preview.removed||[]).length} quyền tự động`;}
+     else{text='Quyền đã khớp với TKB đang công bố';reason='';}
+    }
+    const action=preview?.reason||preview?.partial||(preview?.added||[]).length||(preview?.removed||[]).length||!preview;
+    return `<div class="version-sync" data-sync-status="${escapeHtml(status)}" role="status"><small><strong>${escapeHtml(text)}</strong></small>${reason?`<small>${escapeHtml(reason)}</small>`:''}${state?.updated_at?`<small>Lần áp dụng gần nhất: ${escapeHtml(new Date(state.updated_at).toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh'}))}</small>`:''}${action?'<a class="secondary-btn" href="/?page=admin#syncTkb" target="_top">Đối chiếu phân công</a>':''}</div>`;
   }
+
   async function loadYearPreflight(revision,versions=[]){
     let notice=el('schoolYearPreflight');if(!notice){notice=document.createElement('div');notice.id='schoolYearPreflight';notice.className='form-message';el('versionsList').insertAdjacentElement('beforebegin',notice);}
     const{data,error}=await sb.rpc('v4_school_year_preflight');if(revision!==versionsRevision)return;
@@ -245,16 +253,22 @@
     const sync=ids.length?await sb.from('v4_tkb_sync_state').select('version_id,status,reason,updated_at').in('version_id',ids):{data:[]};
     if(revision!==versionsRevision)return;
     const states=new Map((sync.data||[]).map(state=>[state.version_id,state]));
-    el('versionsList').innerHTML=versions.map(v=>`<div class="version-item" data-version-id="${escapeHtml(v.id)}"><div><strong>${escapeHtml(v.version_name||'Phiên bản')}</strong><small>${escapeHtml(v.school_year||'')} · ${escapeHtml(v.semester||'')} · áp dụng ${escapeHtml(v.effective_date||'—')}</small>${syncLabel(v,states.get(v.id),sync.error)}</div><div class="version-actions">${v.is_active?'<span class="badge active">Đang công bố</span>':`<button class="secondary-btn" data-activate="${escapeHtml(v.id)}" ${window.TranPhuSchoolYear.isCanonical(v.school_year)?'':'disabled title="Cần đối chiếu năm học trước khi kích hoạt"'}>${window.TranPhuSchoolYear.isCanonical(v.school_year)?'Kích hoạt':'Cần đối chiếu năm học'}</button>`}</div></div>`).join('')||'<div class="muted">Chưa có phiên bản nào.</div>';
+    const current=versions.find(v=>v.is_active),live=current?await sb.rpc('v4_preview_published_tkb'):null;
+    if(revision!==versionsRevision)return;
+    const item=v=>`<div class="version-item" data-version-id="${escapeHtml(v.id)}"><div><strong>${escapeHtml(v.version_name||'Phiên bản')}</strong><small>${escapeHtml(v.school_year||'')} · ${escapeHtml(v.semester||'')} · áp dụng ${escapeHtml(v.effective_date||'—')}</small>${!v.is_active?`<small>Mã bản lưu: ${escapeHtml(v.id.slice(-8))} · Tạo ${escapeHtml(new Date(v.created_at).toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh'}))}</small>`:''}${syncLabel(v,states.get(v.id),sync.error,v.is_active?live:null)}</div><div class="version-actions">${v.is_active?'<span class="badge active">Đang công bố</span>':`<button class="secondary-btn" data-activate="${escapeHtml(v.id)}" ${window.TranPhuSchoolYear.isCanonical(v.school_year)?'':'disabled title="Cần đối chiếu năm học trước khi kích hoạt"'}>${window.TranPhuSchoolYear.isCanonical(v.school_year)?'Kích hoạt':'Cần đối chiếu năm học'}</button>`}</div></div>`;
+    const archived=versions.filter(v=>!v.is_active);
+    el('versionsList').innerHTML=versions.length?(current?item(current):'<p>Chưa có TKB đang công bố.</p>')+(archived.length?`<details class="version-archive"><summary>${archived.length} phiên bản lưu</summary>${archived.map(item).join('')}</details>`:''):'<div class="muted">Chưa có phiên bản nào.</div>';
+
     await loadYearPreflight(revision,versions);
   }
   el('refreshVersionsBtn').addEventListener('click',loadVersions);
+  window.addEventListener('tkb:published',()=>{if(approvedUser)loadVersions();});
   el('versionsList').addEventListener('click',async e=>{
     const b=e.target.closest('[data-activate]');if(!b)return;const id=b.dataset.activate;
     const{data:current,error:readError}=await sb.from('tkb_versions').select('id').eq('is_active',true).maybeSingle();
     if(readError)return await alertPortal(readError.message);
     const{data,error}=await sb.rpc('v4_publish_timetable',{target_version:id,expected_current:current?.id||'',sync_permissions:true});
-    if(error)await alertPortal(error.message);else{window.TkbIntegration?.announce({versionId:id});msg(el('publishMessage'),data.sync?.applied?'Đã kích hoạt và đồng bộ phân công.':'Đã kích hoạt. Phân công chờ đối chiếu: '+(data.sync?.reason||''),data.sync?.applied?'ok':'error');loadVersions();}
+    if(error)await alertPortal(error.message);else{window.TkbIntegration?.announce({versionId:id});msg(el('publishMessage'),data.sync?.partial?'Đã kích hoạt và đồng bộ tài khoản đã liên kết; còn tài khoản đang chờ.':data.sync?.applied?'Đã kích hoạt và đồng bộ phân công.':'Đã kích hoạt. Phân công chờ đối chiếu: '+(data.sync?.reason||''),data.sync?.applied?'ok':'error');loadVersions();}
   });
   sessionCheck();
 })();

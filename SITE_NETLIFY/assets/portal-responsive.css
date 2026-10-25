@@ -77,6 +77,29 @@
  #adminPage .more-grid{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
  #adminPage .gridTwo{align-items:start}
  #adminPage .box{min-width:0}
+ #adminPage .adminPanels{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:16px}
+ #adminPage .adminSyncPanel{grid-column:1/-1}
+ #adminPage .adminImportPanel{grid-row:span 2}
+ #adminPage .adminPanel>summary h2{font-size:18px;line-height:1.4;max-width:calc(100% - 20px)}
+ #adminPage .adminPanel>summary h2 .ui-icon{flex-shrink:0}
+ #adminPage .syncHeading{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center}
+ #adminPage .syncMetrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0}
+ #adminPage .syncMetrics>div{display:flex;flex-direction:column;gap:4px;padding:12px;border-radius:10px;border:1px solid var(--tp-border,#d8e6f6);background:white}
+ #adminPage .syncMetrics b{font-size:22px}
+ #adminPage .syncMetrics span{font-size:13px}
+ #adminPage .syncPeople{list-style:none;padding:0;margin:4px 0 12px}
+ #adminPage .syncPeople li{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--tp-border,#d8e6f6);font-size:14px;overflow-wrap:anywhere}
+ #adminPage .syncPeople li>div{min-width:0}
+ #adminPage .syncPeople small{display:block;color:var(--tp-muted,#526681);margin-top:3px}
+ #adminPage .syncPeople li>span{max-width:55%;text-align:right;font-size:13px}
+ #adminPage .syncPending>summary{color:var(--tp-text)}
+ #adminPage .syncIssues>summary{color:#a12e2e}
+ #adminPage .syncActions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin:14px 0}
+ #adminPage .syncPreview{font-size:14px;padding:16px}
+ #adminPage #syncDetails{margin:0;background:white}
+ #adminPage #syncDetails h3{margin:0 0 8px}
+ #adminPage .permissionRow{font-size:14px;flex-wrap:wrap;overflow-wrap:anywhere}
+ #adminPage .syncPartial{padding:12px;border-radius:10px;background:#eaf3ff;color:#254d81}
  .historyItem{flex-wrap:wrap}
  .historyItem>div:first-child{flex:1 1 160px;min-width:0;overflow-wrap:anywhere}
 }
@@ -139,6 +162,13 @@
  .class-review-toolbar>label{flex-basis:100%}
  .class-review-toolbar>.btn{flex:1 1 120px}
  #adminPage .gridTwo{grid-template-columns:1fr}
+ #adminPage .adminImportPanel{grid-row:auto}
+ #adminPage .syncMetrics{gap:6px}
+ #adminPage .syncMetrics>div{padding:9px}
+ #adminPage .syncMetrics b{font-size:20px}
+ #adminPage .syncMetrics span{font-size:12px}
+ #adminPage .syncActions .btn{flex:1 1 130px}
+ #adminPage .syncPeople li{align-items:flex-start}
  #adminPage .more-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
  #adminPage .more-grid .btn{font-size:13px;white-space:normal;text-align:center;padding:9px}
 }
