@@ -1,0 +1,93 @@
+/* Shared screen-only command layout. Inputs and paper layouts keep their own grids. */
+@media screen {
+ /* One control family for commands in the portal, timetable and dialogs. */
+ body :is(.btn,.primary-btn,.secondary-btn,.tp-dialog-button){
+  box-sizing:border-box;min-height:44px;height:auto;border-radius:var(--tp-radius-control,8px);font-family:var(--tp-font-family,"Segoe UI",Tahoma,Arial,sans-serif);font-weight:600;line-height:1.35;box-shadow:none;cursor:pointer;touch-action:manipulation;
+ }
+ body :is(.btn.outline,.secondary-btn,.tp-dialog-cancel,.tp-dialog-close){border:1px solid var(--tp-border);background:var(--tp-surface);color:var(--tp-primary)}
+ body :is(.btn.primary,.primary-btn,.tp-dialog-primary){border:1px solid var(--tp-primary);background:var(--tp-primary);color:#fff}
+ body :is(.btn.outline,.secondary-btn,.tp-dialog-cancel,.tp-dialog-close):hover:not(:disabled){background:var(--tp-primary-soft);border-color:var(--tp-border-strong)}
+ body :is(.btn.primary,.primary-btn,.tp-dialog-primary):hover:not(:disabled){background:var(--tp-primary-hover);border-color:var(--tp-primary-hover)}
+ body :is(.btn,.primary-btn,.secondary-btn,.tp-dialog-button):disabled{opacity:.5;cursor:not-allowed}
+ :is(.actions,.report-actions,.bottomClass,.syncActions,.layoutConfirmBar,.account-tabs,.report-audience,.report-visual-tabs,.version-actions,.plan-actions,.offline-actions){
+  display:flex;flex-direction:row;align-items:stretch;flex-wrap:nowrap;gap:clamp(6px,1vw,12px);min-width:0;max-width:100%;
+ }
+ :is(.actions,.report-actions,.bottomClass,.syncActions,.layoutConfirmBar,.account-tabs,.report-audience,.report-visual-tabs,.version-actions,.plan-actions,.offline-actions)>:is(button,.btn,a,.fileBtn){
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;flex:0 1 auto;min-width:0;min-height:44px;margin:0;padding:8px clamp(8px,1.1vw,16px);line-height:1.35;white-space:normal;text-align:center;
+ }
+ :is(.actions,.report-actions,.bottomClass,.syncActions,.layoutConfirmBar,.version-actions)>.btn .ui-icon{flex-shrink:0}
+ :is(.actions,.report-actions,.bottomClass,.syncActions)>[hidden],.layoutConfirmBar>[hidden]{display:none!important}
+ .report-toolbar{display:flex;flex-direction:row;align-items:center;justify-content:space-between;flex-wrap:nowrap;gap:12px}
+ .report-toolbar h2{min-width:0;margin:0;flex:1}.report-toolbar>button{flex-shrink:0;min-height:44px}
+ .report-control-row,.overview-control-row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0;margin:12px 0;flex-wrap:wrap}
+ .report-control-row :is(.report-audience,.report-visual-tabs),.overview-control-row :is(.report-audience,.report-visual-tabs){margin:0;max-width:100%}
+ .report-audience[hidden],.report-visual-tabs[hidden]{display:none}
+ .report-audience>button,.report-visual-tabs>button{flex:1 1 auto;font-size:12px}
+ .report-extra-filters>summary{width:max-content;max-width:100%;padding-right:8px}
+ .quick-lesson-ratings{grid-template-columns:repeat(4,minmax(0,1fr))}
+ .quick-lesson-ratings label{min-height:44px;font-size:13px}
+ .overview-task{flex-direction:row;align-items:center;gap:12px}
+ .overview-task>div{flex:1;min-width:0}.overview-task>button{max-width:36%;align-self:center;min-height:44px;padding:8px 10px!important}
+ /* Long, occasional toolsets stay in one locally scrollable strip. */
+ body :is(.plan-actions,.offline-actions,.account-tabs,.rd-filters){flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:thin;scroll-padding-inline:8px;padding-bottom:4px;max-width:100%;min-width:0}
+ body :is(.plan-actions,.offline-actions,.account-tabs,.rd-filters)>:is(button,a,.btn){flex:0 0 auto;white-space:nowrap}
+ .admin-page .version-item{flex-wrap:wrap;align-items:center}
+ .admin-page .version-actions{flex-direction:row;align-items:stretch;flex-wrap:nowrap;max-width:100%;gap:8px}
+ .admin-page .version-actions button{flex:1 1 auto;min-width:0;min-height:44px;font-size:13px}
+ .admin-page .section-row{flex-direction:row;align-items:center;flex-wrap:nowrap;gap:12px}
+ .admin-page .section-row>h2{min-width:0;flex:1;margin:0}.admin-page .section-row>button{width:auto;max-width:48%;min-height:44px}
+ #adminPage .syncActions{flex-wrap:nowrap}
+ .teacher-account-dialog .actions{justify-content:flex-start}
+ #appView #adminTools{grid-template-columns:repeat(auto-fit,minmax(min(100%,140px),1fr))}
+ .student-manager-heading{flex-wrap:nowrap;align-items:center}.student-manager-heading>h2{flex:1;min-width:0}.student-manager-heading>button{flex-shrink:0}
+ .managed-student-actions,.student-editor-actions{flex-wrap:nowrap;align-items:stretch;gap:8px}
+ .topbar .brand{min-width:0;flex:1;gap:8px}.topbar .brand>div{min-width:0}.topbar .brand strong{overflow-wrap:anywhere}.topbar .brand-mark{flex-shrink:0}
+ .topbar{gap:8px}
+ .top-actions{flex-wrap:nowrap;gap:8px}.top-actions>*{flex-shrink:0;min-height:44px}
+ #seatingClassWrap{max-width:320px;margin-bottom:12px}
+ #optionsToggle,.segmented button,#weekControls button{min-height:44px;min-width:44px}
+ .checkline,.checkbox-inline{min-height:44px}
+ #sessionGate{min-height:120px;align-content:center}
+ /* Report filters and administrative tasks share the same navigation states. */
+ :is(.report-view-tabs,.admin-task-tabs,.report-visual-tabs,.report-audience,.account-tabs){
+  display:flex;align-items:center;flex-wrap:nowrap;gap:4px;min-width:0;max-width:100%;padding:4px;border:1px solid var(--tp-border);border-radius:12px;background:var(--tp-surface-subtle);overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:thin;
+ }
+ :is(.report-view-tabs,.admin-task-tabs,.report-visual-tabs,.report-audience,.account-tabs)>button{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;flex:0 0 auto;min-height:44px;margin:0;padding:9px 14px;border:1px solid transparent;border-radius:var(--tp-radius-control);background:transparent;color:var(--tp-muted);font:600 13px/1.35 var(--tp-font-family);white-space:nowrap;cursor:pointer;touch-action:manipulation;
+ }
+ :is(.report-view-tabs,.admin-task-tabs,.report-visual-tabs,.report-audience,.account-tabs)>button:hover:not(:disabled){background:var(--tp-primary-soft);color:var(--tp-primary)}
+ :is(.report-view-tabs,.admin-task-tabs,.report-visual-tabs,.report-audience,.account-tabs)>button:is(.on,[aria-pressed="true"]){border-color:var(--tp-primary);background:var(--tp-primary);color:#fff}
+ :is(.report-view-tabs,.admin-task-tabs,.report-visual-tabs,.report-audience,.account-tabs)>button:is(.on,[aria-pressed="true"]):hover{border-color:var(--tp-primary-hover);background:var(--tp-primary-hover);color:#fff}
+ :is(.report-view-tabs,.admin-task-tabs,.report-visual-tabs,.report-audience,.account-tabs)>button[hidden]{display:none}
+ .compact-toolbar .segmented{background:var(--tp-surface-subtle);border-color:var(--tp-border);border-radius:12px}
+ .compact-toolbar .segmented button{border-radius:var(--tp-radius-control);color:var(--tp-muted);font-weight:600}
+ .compact-toolbar .segmented button[aria-pressed="true"]{background:var(--tp-primary);color:#fff}
+ .report-view-tabs{margin:14px 0 12px}.report-view-tabs .ui-icon{width:17px;height:17px}
+ .admin-task-bar{margin:12px 0}.admin-task-bar>h3{margin:0 0 10px;font-size:14px;color:var(--tp-muted);font-weight:600}
+ #progressPage .report-actions{align-items:center;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:thin;padding:2px 0 6px}
+ #progressPage .report-actions>.btn{flex:0 0 auto;min-height:44px;padding:10px 14px;white-space:nowrap;font-size:13px}
+ /* Footer stays in document flow, separate from the persistent navigation. */
+ body :is(.portal-footer,.site-footer,.guide-footer){
+  box-sizing:border-box;position:static;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px 24px;max-width:1360px;margin:12px auto 0;padding:14px 16px 20px;border-top:1px solid var(--tp-border);background:transparent;color:var(--tp-muted);font:12px/1.5 var(--tp-font-family);text-align:center;
+ }
+ .footer-meta,.footer-links{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:0 16px;min-width:0}
+ .footer-meta strong{font-weight:600}.footer-meta>span{white-space:nowrap}
+ body :is(.portal-footer,.site-footer,.guide-footer) :is(a,button){display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:44px;margin:0;padding:0;border:0;border-radius:4px;background:transparent;color:var(--tp-muted);font:inherit;text-decoration:none;white-space:nowrap;cursor:pointer}
+ body :is(.portal-footer,.site-footer,.guide-footer) :is(a,button):hover{color:var(--tp-primary);text-decoration:underline}
+ body :is(.portal-footer,.site-footer,.guide-footer) :is(a,button):focus-visible{outline:2px solid var(--tp-primary);outline-offset:3px}
+ body :is(.portal-footer,.site-footer,.guide-footer) .admin-footer-link{margin-left:0;font:inherit}
+}
+@media screen and (max-width:700px){
+ :is(.actions,.report-actions,.bottomClass,.syncActions){width:100%;gap:8px}
+ :is(.actions,.report-actions,.bottomClass,.syncActions)>:is(button,.btn,a,.fileBtn){flex:1 1 0;font-size:12px;padding:8px 6px}
+ .layoutConfirmBar{gap:8px}.layoutConfirmBar>.pill{flex:0 0 auto}.layoutConfirmBar>.btn{flex:1 1 0;font-size:12px;padding:8px 6px}
+ .report-control-row,.overview-control-row{gap:10px}
+ .quick-lesson-ratings{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .overview-task>button{font-size:12px}
+ .admin-page .version-actions{width:100%}
+ .teacher-account-dialog .actions>.btn{font-size:13px}
+ .report-view-tabs>button{gap:4px;padding:9px 8px;font-size:12px}.report-view-tabs .ui-icon{display:none}
+ #progressPage .report-actions{gap:4px}#progressPage .report-actions>.btn{min-width:44px;padding:10px 7px;font-size:12px}
+ body :is(.portal-footer,.site-footer,.guide-footer){flex-direction:column;gap:0;padding-top:12px}.footer-meta{gap:0 12px}.footer-links{gap:0 20px}
+}
+@media print{.report-view-tabs,.admin-task-bar,.portal-footer,.site-footer,.guide-footer{display:none!important}}

@@ -1,9 +1,8 @@
-import {randomBytes} from 'node:crypto';
 import '../../SITE_NETLIFY/assets/teacher-identity.js';
 
 const response=(status,data)=>({statusCode:status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'},body:JSON.stringify(data)});
 const failure=(status,message,code,missing)=>Object.assign(new Error(message),{status,...(code?{safeCode:code}:{}),...(missing?{missing}: {})});
-const password=()=>randomBytes(18).toString('base64url')+'aA7!';
+const password=name=>(String(name||'giaovien').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[đĐ]/g,'d').toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,122)||'giaovien')+'123456';
 const limits=new Map();
 export function createHandler({fetchImpl=fetch,config=process.env}={}){
  return async event=>{
@@ -46,7 +45,7 @@ export function createHandler({fetchImpl=fetch,config=process.env}={}){
     try{await request('/rest/v1/v4_teacher_account_events',{method:'POST',service:true,body:{actor_id:user.id,target_id:target,action}});return true;}catch{return false;}
    };
    if(input.action==='change_password'){
-    if(typeof input.current_password!=='string'||!input.current_password||typeof input.new_password!=='string'||input.new_password.length<12||input.new_password.length>128||input.new_password===input.current_password)throw failure(400,'Nhập mật khẩu hiện tại và mật khẩu mới khác, từ 12 đến 128 ký tự.');
+    if(typeof input.current_password!=='string'||!input.current_password||typeof input.new_password!=='string'||input.new_password.length<8||input.new_password.length>128||input.new_password===input.current_password)throw failure(400,'Nhập mật khẩu hiện tại và mật khẩu mới khác, từ 8 đến 128 ký tự.');
     let fresh;try{fresh=await request('/auth/v1/token?grant_type=password',{method:'POST',body:{email:user.email,password:input.current_password}});}catch(error){if(error.status===400||error.status===401)throw failure(401,'Mật khẩu hiện tại không hợp lệ.');throw error;}
     if(fresh.user?.id!==user.id||!fresh.access_token)throw failure(401,'Mật khẩu hiện tại không hợp lệ.');
     try{
@@ -62,6 +61,8 @@ export function createHandler({fetchImpl=fetch,config=process.env}={}){
    if(await rpc('v4_admin',{})!==true)throw failure(403,'Chỉ quản trị được cấp tài khoản hoặc cấp lại mật khẩu.');
    adminToken=token;
    if(input.action==='create'){
+    if(input.school_viewer!==undefined&&typeof input.school_viewer!=='boolean')throw failure(400,'Quyền Ban Giám Hiệu không hợp lệ.');
+    if(input.school_viewer===true)await rpc('v4_school_report_access',{});
     const username=String(input.username||'').trim().toLowerCase();
     if(!globalThis.TranPhuTeacherIdentity.validUsername(username))throw failure(400,'Tên đăng nhập gồm 3–40 ký tự không dấu: chữ, số, dấu chấm, gạch ngang hoặc gạch dưới.');
     const email=globalThis.TranPhuTeacherIdentity.loginEmail(username);
@@ -70,20 +71,21 @@ export function createHandler({fetchImpl=fetch,config=process.env}={}){
     if(!candidate)throw failure(409,'Mã giáo viên chưa đối chiếu được với TKB/PCCM. Kiểm tra phân công trước khi cấp tài khoản.');
     const directory=await rpc('v4_teacher_directory',{y:input.year});
     if(directory.some(t=>t.teacher_code===candidate.teacher_code||t.username?.toLowerCase()===username))throw failure(409,'Tài khoản đã có trong danh sách. Dùng chức năng cấp lại mật khẩu nếu cần.');
-    const temporary=password();
+    const temporary=password(candidate.teacher_name);
     const created=await request('/auth/v1/admin/users',{method:'POST',service:true,body:{email,password:temporary,email_confirm:true,app_metadata:{force_password_change:true},user_metadata:{name:candidate.teacher_name}}});
     createdId=(created.user||created).id;if(!createdId)throw failure(502,'Chưa xác nhận được tài khoản vừa tạo.');
     await rpc('v4_admin_link_teacher',{em:email,code:candidate.teacher_code,fullname:candidate.teacher_name});
     await rpc('v4_register_teacher_login',{target:createdId,login_name:username});
+    if(input.school_viewer===true)await rpc('v4_set_school_report_role',{target:createdId,enabled:true,expected:false});
     const logged=await audit('account_created',createdId);createdId=null;
-    return response(201,{ok:true,username,teacher_code:candidate.teacher_code,teacher_name:candidate.teacher_name,temporary_password:temporary,force_password_change:true,audit_recorded:logged});
+    return response(201,{ok:true,username,teacher_code:candidate.teacher_code,teacher_name:candidate.teacher_name,temporary_password:temporary,force_password_change:true,school_viewer:input.school_viewer===true,audit_recorded:logged});
    }
    const directory=await rpc('v4_teacher_directory',{y:input.year});
    const target=directory.find(t=>t.user_id===input.user_id);
    if(!target)throw failure(404,'Không có tài khoản giáo viên trong danh sách.');
    if(target.user_id===user.id)throw failure(400,'Dùng mục tự đổi mật khẩu cho tài khoản của bạn.');
    const currentData=await request('/auth/v1/admin/users/'+encodeURIComponent(target.user_id),{service:true}),current=currentData.user||currentData;
-   const temporary=password();
+   const temporary=password(target.teacher_name);
    await request('/auth/v1/admin/users/'+encodeURIComponent(target.user_id),{method:'PUT',service:true,body:{password:temporary,app_metadata:{...current.app_metadata,force_password_change:true}}});
    const logged=await audit('password_reset',target.user_id);
    return response(200,{ok:true,username:target.username||current.email,teacher_name:target.teacher_name,teacher_code:target.teacher_code,temporary_password:temporary,force_password_change:true,audit_recorded:logged});

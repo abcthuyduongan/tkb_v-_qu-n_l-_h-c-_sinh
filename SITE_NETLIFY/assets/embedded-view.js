@@ -1,7 +1,7 @@
 /* Reuse existing timetable/admin functionality inside the signed-in portal. */
 ((root)=>{'use strict';
  const embedded=root.parent!==root;
- if(embedded){const style=document.createElement('style');style.textContent='.topbar .brand,.topbar .admin-login-btn,.topbar #teacherWorkspaceLink,.site-footer,.admin-page .topbar{display:none!important}.topbar{min-height:0;justify-content:flex-end;padding:8px 12px;background:transparent;border:0}.page-shell,.admin-shell{max-width:none;margin:0;padding:12px}.schedule-document{box-shadow:none}';document.head.append(style);}
+ if(embedded){const style=document.createElement('style');style.textContent='.topbar .brand,.topbar .admin-login-btn,.topbar #teacherWorkspaceLink,.site-footer,.admin-page .topbar{display:none!important}.topbar{min-height:0;justify-content:flex-end;padding:8px 12px;background:transparent;border:0}.page-shell,.admin-shell{max-width:none;margin:0;padding:12px}.schedule-document{box-shadow:none}.toast{bottom:20px}';document.head.append(style);}
  // Standalone lookup is public. Private pupil workflows remain in the authenticated portal.
  if(!embedded&&location.pathname.startsWith('/tra-cuu/')){
   root.TkbPublicLookup=true;

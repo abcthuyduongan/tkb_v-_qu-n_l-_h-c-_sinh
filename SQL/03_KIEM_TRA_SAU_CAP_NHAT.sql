@@ -26,4 +26,22 @@ SELECT position('learning_groups' in pg_get_functiondef(to_regprocedure('public.
 SELECT p.proname,has_function_privilege('anon',p.oid,'EXECUTE') AS anon_execute,
  has_function_privilege('authenticated',p.oid,'EXECUTE') AS authenticated_execute
 FROM pg_proc p WHERE p.oid=to_regprocedure('public.v4_invalidate_layout_on_roster_change()');
+SELECT to_regprocedure('public.v4_overview(text,date,date,text)') IS NOT NULL AS overview_installed, to_regprocedure('public.v4_confirm_attendance(uuid,jsonb)') IS NOT NULL AS confirmation_installed;
+SELECT has_function_privilege('anon',to_regprocedure('public.v4_overview(text,date,date,text)'),'EXECUTE') AS anon_overview_must_be_false, has_function_privilege('authenticated',to_regprocedure('public.v4_completion_rows(text,text,date,date,text)'),'EXECUTE') AS direct_internal_access_must_be_false;
+SELECT to_regprocedure('public.v4_can_arrange_seats(text,text)') IS NOT NULL AS admin_seating_installed;
+-- Feedback: 3 rows installed=true, security_definer=true, authenticated_execute=true.
+-- Only submit has anon_execute=true. All direct table privileges below must be false.
+SELECT x.signature,p.oid IS NOT NULL AS installed,p.prosecdef AS security_definer,
+ has_function_privilege('anon',p.oid,'EXECUTE') AS anon_execute,
+ has_function_privilege('authenticated',p.oid,'EXECUTE') AS authenticated_execute
+FROM (VALUES('public.v4_submit_feedback(text,text,text,text,text)'),('public.v4_get_feedback(text)'),('public.v4_update_feedback(uuid,text,text)')) x(signature)
+LEFT JOIN pg_proc p ON p.oid=to_regprocedure(x.signature);
+SELECT coalesce(position('feedback_guard_v2' in pg_get_functiondef(to_regprocedure('public.v4_submit_feedback(text,text,text,text,text)')))>0,false) AS feedback_guard_v2_installed;
+SELECT r.rolname,c.relrowsecurity AS rls_enabled,
+ has_table_privilege(r.oid,c.oid,'SELECT') AS direct_select_must_be_false,
+ has_table_privilege(r.oid,c.oid,'INSERT') AS direct_insert_must_be_false,
+ has_table_privilege(r.oid,c.oid,'UPDATE') AS direct_update_must_be_false,
+ has_table_privilege(r.oid,c.oid,'DELETE') AS direct_delete_must_be_false
+FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace CROSS JOIN pg_roles r
+WHERE n.nspname='public' AND c.relname='v4_feedback' AND r.rolname IN ('anon','authenticated');
 -- SQL Editor khong dai dien JWT giao vien. Sau day van can test dang nhap/phan quyen that.

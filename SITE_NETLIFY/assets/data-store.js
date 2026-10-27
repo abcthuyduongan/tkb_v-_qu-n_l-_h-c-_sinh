@@ -32,10 +32,10 @@ window.TkbStore=(()=>{
     }throw Error('Dữ liệu vượt giới hạn.');
   }
   async function manifest(){
-    const versions=await read('tkb_versions',{select:'id,version_name,version_no,school_name,school_year,semester,effective_date,is_active,published_at,updated_at',status:'eq.published',order:'id.asc'});
-    let plans,calendars=[],ready=true;
-    try{plans=await read('tkb_plans',{select:'id,updated_at',published:'eq.true',order:'id.asc'});}catch(e){if(!['PGRST205','42P01'].includes(e.code))throw e;plans=[];ready=false;}
-    try{calendars=await read('tkb_school_calendars',{select:'school_year,semester1_start,semester2_start,week_overrides,updated_at',order:'school_year.asc'});}catch(e){if(!['PGRST205','42P01'].includes(e.code))throw e;calendars=[];}
+    let ready=true;const [versions,plans,calendars]=await Promise.all([read('tkb_versions',{select:'id,version_name,version_no,school_name,school_year,semester,effective_date,is_active,published_at,updated_at',status:'eq.published',order:'id.asc'}),read('tkb_plans',{select:'id,updated_at',published:'eq.true',order:'id.asc'}).catch(e=>{if(!['PGRST205','42P01'].includes(e.code))throw e;ready=false;return [];}),read('tkb_school_calendars',{select:'school_year,semester1_start,semester2_start,week_overrides,updated_at',order:'school_year.asc'}).catch(e=>{if(!['PGRST205','42P01'].includes(e.code))throw e;return [];})]);
+
+
+
     return {versions,plans,calendars,ready,key:JSON.stringify([versions.map(v=>[v.id,v.updated_at,v.is_active]),plans,calendars,ready])};
   }
   async function download(expected,selected){

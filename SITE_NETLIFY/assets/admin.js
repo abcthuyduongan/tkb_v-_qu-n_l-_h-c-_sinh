@@ -280,5 +280,122 @@
       window.TkbIntegration?.announce({versionId:version.id});const sync=applied.data.sync;msg(el('publishMessage'),sync?.partial?'Đã áp dụng TKB và đồng bộ tài khoản đã liên kết; còn tài khoản đang chờ.':sync?.applied?'Đã áp dụng TKB và đồng bộ phân công.':'Đã áp dụng TKB. Phân công chờ đối chiếu: '+(sync?.reason||''),'ok');await loadVersions();
     }catch(error){await alertPortal(friendlyError(error));}finally{activating=false;if(b.isConnected)b.disabled=false;}
   });
+  /* --- On-demand Admin Accordion & Feedback Inbox --- */
+  function setupAdminAccordion(){
+    const panels=document.querySelectorAll('.adminPanels > details');
+    const tabButtons=document.querySelectorAll('.admin-task-tabs [data-admin-panel]');
+    function activatePanel(panelId,shouldScroll=true){
+      panels.forEach(p=>{
+        if(p.id===panelId){
+          p.open=true;
+          if(shouldScroll){try{p.scrollIntoView({behavior:'smooth',block:'start'});}catch(e){p.scrollIntoView(true);}}
+        }else{
+          p.open=false;
+        }
+      });
+      tabButtons.forEach(btn=>{
+        const active=btn.dataset.adminPanel===panelId;
+        btn.classList.toggle('on',active);
+        btn.setAttribute('aria-pressed',String(active));
+      });
+
+    }
+    tabButtons.forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const targetId=btn.dataset.adminPanel;
+        const targetPanel=document.getElementById(targetId);
+        if(targetPanel&&targetPanel.open){
+          targetPanel.open=false;
+          btn.classList.remove('on');
+          btn.setAttribute('aria-pressed','false');
+        }else{
+          activatePanel(targetId,true);
+        }
+      });
+    });
+    panels.forEach(p=>{
+      p.addEventListener('toggle',()=>{
+        if(p.open){
+          panels.forEach(other=>{if(other!==p)other.open=false;});
+          tabButtons.forEach(btn=>{
+            const active=btn.dataset.adminPanel===p.id;
+            btn.classList.toggle('on',active);
+            btn.setAttribute('aria-pressed',String(active));
+          });
+          if(p.id==='adminFeedbackPanel')loadAdminFeedback();
+        }else{
+          const btn=document.querySelector(`.admin-task-tabs [data-admin-panel="${p.id}"]`);
+          if(btn){btn.classList.remove('on');btn.setAttribute('aria-pressed','false');}
+        }
+      });
+    });
+  }
+
+  async function loadAdminFeedback(){
+    const listEl=el('adminFeedbackList');
+    if(!listEl)return;
+    const filterSelect=el('adminFeedbackFilter');
+    const statusFilter=filterSelect?filterSelect.value:'pending';
+    listEl.textContent='Đang nạp danh sách góp ý…';
+    try{
+      const {data,error}=await sb.rpc('v4_get_feedback',{p_status:null});
+      if(error)throw error;
+      const allRows=data||[];
+    const rows=statusFilter?allRows.filter(r=>r.status===statusFilter):allRows;
+      const badge=el('adminFeedbackBadge');
+      const pendingCount=allRows.filter(r=>r.status==='pending').length;
+      if(badge){badge.textContent=`${pendingCount} mới`;badge.hidden=pendingCount===0;}
+      if(!rows.length){
+        listEl.innerHTML='<p class="note" style="padding:16px;text-align:center">Không có góp ý nào trong trạng thái này.</p>';
+        return;
+      }
+      const categoryLabels={feature:'💡 Đề xuất tính năng',timetable:'📅 Góp ý TKB',bug:'🐛 Báo lỗi / Sự cố',other:'💬 Ý kiến khác'};
+      const statusLabels={pending:'<span class="pill amber">Chờ xử lý</span>',reviewed:'<span class="pill blue">Đã tiếp nhận</span>',resolved:'<span class="pill green">Đã giải quyết</span>'};
+      listEl.innerHTML=rows.map(r=>`
+        <div class="box feedback-item" data-id="${escapeHtml(r.id)}" style="margin-bottom:12px;padding:14px;border:1px solid var(--tp-border,#d3d7de);border-radius:10px;background:var(--tp-surface,#fff)">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+            <div>
+              <strong style="font-size:15px">${escapeHtml(r.sender_name||'Người dùng')}</strong>
+              <span class="muted" style="margin-left:8px;font-size:13px">${escapeHtml(r.sender_role||'')}</span>
+              ${r.contact_info?`<div class="muted" style="font-size:12px;margin-top:2px">Liên hệ: ${escapeHtml(r.contact_info)}</div>`:''}
+            </div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <span class="pill gray">${categoryLabels[r.category]||'Góp ý'}</span>
+              ${statusLabels[r.status]||'Không xác định'}
+              <small class="muted" style="margin-left:6px">${new Date(r.created_at).toLocaleString('vi-VN')}</small>
+            </div>
+          </div>
+          <p style="margin:8px 0;font-size:14px;line-height:1.5;white-space:pre-wrap;color:var(--tp-text,#1a202c)">${escapeHtml(r.content)}</p>
+          <div class="actions" style="margin-top:10px;display:flex;gap:8px;justify-content:flex-end">
+            ${r.status==='pending'?`<button type="button" class="btn outline small" data-feedback-action="reviewed" data-id="${escapeHtml(r.id)}">Đã tiếp nhận</button>`:''}
+            ${r.status!=='resolved'?`<button type="button" class="btn primary small" data-feedback-action="resolved" data-id="${escapeHtml(r.id)}">Đã giải quyết</button>`:''}
+          </div>
+        </div>
+      `).join('');
+      listEl.querySelectorAll('button[data-feedback-action]').forEach(btn=>{
+        btn.addEventListener('click',async()=>{
+          const fbId=btn.dataset.id;
+          const newStatus=btn.dataset.feedbackAction;
+          btn.disabled=true;
+          try{
+            const {error:updErr}=await sb.rpc('v4_update_feedback',{p_id:fbId,p_status:newStatus});
+            if(updErr)throw updErr;
+            if(window.TranPhuDialog)window.TranPhuDialog.toast('Đã cập nhật trạng thái góp ý.',{tone:'success'});
+            await loadAdminFeedback();
+          }catch(e){
+            btn.disabled=false;
+            if(window.TranPhuDialog)window.TranPhuDialog.toast('Lỗi cập nhật: '+(e.message||'Thất bại'),{tone:'error'});
+          }
+        });
+      });
+    }catch(err){
+      listEl.innerHTML=`<p class="note" style="color:var(--tp-danger,#e02424)">Không tải được danh sách góp ý: ${escapeHtml(err.message||'Lỗi mạng')}</p>`;
+    }
+  }
+
+  el('refreshAdminFeedback')?.addEventListener('click',loadAdminFeedback);
+  el('adminFeedbackFilter')?.addEventListener('change',loadAdminFeedback);
+  setupAdminAccordion();
+
   sessionCheck();
 })();

@@ -2456,10 +2456,10 @@ BEGIN
   WHERE s.school_year=y AND (cls IS NULL OR s.class_code=cls)
  ), lessons AS MATERIALIZED (
   SELECT s.id,s.school_year,s.class_code,s.lesson_date,s.period_no,s.subject,s.teacher_id,t.teacher_name,
-   coalesce(s.ended_at,CASE WHEN nullif(to_jsonb(s)->>'scheduled_end_at','')::timestamptz<=statement_timestamp()
-    THEN nullif(to_jsonb(s)->>'scheduled_end_at','')::timestamptz END) AS ended_at,
-   nullif(to_jsonb(s)->>'scheduled_end_at','')::timestamptz AS scheduled_end_at,
-   (s.ended_at IS NULL AND coalesce(nullif(to_jsonb(s)->>'scheduled_end_at','')::timestamptz<=statement_timestamp(),false)) AS is_auto_ended
+   coalesce(s.ended_at,CASE WHEN s.scheduled_end_at<=statement_timestamp()
+    THEN s.scheduled_end_at END) AS ended_at,
+   s.scheduled_end_at,
+   (s.ended_at IS NULL AND coalesce(s.scheduled_end_at<=statement_timestamp(),false)) AS is_auto_ended
   FROM public.v4_sessions s LEFT JOIN public.v4_teachers t ON t.user_id=s.teacher_id
   WHERE s.school_year=y AND (cls IS NULL OR s.class_code=cls) AND s.lesson_date BETWEEN d1 AND d2
  ), att AS MATERIALIZED (
@@ -2917,6 +2917,846 @@ END $$;
 
 REVOKE ALL ON FUNCTION public.v4_lesson_handoffs(text,text,date,date,text) FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.v4_lesson_handoffs(text,text,date,date,text) TO authenticated;
+NOTIFY pgrst,'reload schema';
+
+-- SOURCE 30_v6_ban_giam_hieu_reports.sql
+-- Additive report access for teachers. Never grants system administration or class writes.
+
+DO $guard$ BEGIN
+ IF to_regprocedure('public.v4_class_report(text,text,date,date,text,boolean)') IS NULL
+ OR to_regprocedure('public.v4_lesson_handoffs(text,text,date,date,text)') IS NULL
+ OR coalesce(position('learning_groups' in pg_get_functiondef(to_regprocedure('public.v4_lesson_handoffs(text,text,date,date,text)'))),0)=0 THEN
+  RAISE EXCEPTION 'Cần hoàn tất các cập nhật đến SQL29 trước khi cấp quyền Ban Giám Hiệu';
+ END IF;
+END $guard$;
+CREATE TABLE IF NOT EXISTS public.v4_school_report_roles(
+ user_id uuid PRIMARY KEY REFERENCES public.v4_teachers(user_id) ON DELETE CASCADE,
+ enabled boolean NOT NULL DEFAULT false,
+ updated_by uuid NOT NULL REFERENCES auth.users(id),
+ updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS public.v4_school_report_role_events(
+ id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+ target_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+ actor_id uuid NOT NULL REFERENCES auth.users(id),
+ enabled boolean NOT NULL,created_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.v4_school_report_roles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.v4_school_report_role_events ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS v4_school_report_roles_read ON public.v4_school_report_roles;
+CREATE POLICY v4_school_report_roles_read ON public.v4_school_report_roles FOR SELECT TO authenticated
+ USING(public.v4_credentials_ready() AND (public.v4_admin() OR user_id=auth.uid()));
+DROP POLICY IF EXISTS v4_school_report_events_read ON public.v4_school_report_role_events;
+CREATE POLICY v4_school_report_events_read ON public.v4_school_report_role_events FOR SELECT TO authenticated
+ USING(public.v4_credentials_ready() AND public.v4_admin());
+REVOKE ALL ON public.v4_school_report_roles,public.v4_school_report_role_events FROM PUBLIC,anon,authenticated;
+GRANT SELECT ON public.v4_school_report_roles,public.v4_school_report_role_events TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.v4_school_report_access() RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public,pg_temp AS $$
+ SELECT public.v4_credentials_ready() AND EXISTS(
+  SELECT 1 FROM public.v4_school_report_roles WHERE user_id=auth.uid() AND enabled
+ )
+$$;
+CREATE OR REPLACE FUNCTION public.v4_set_school_report_role(target uuid,enabled boolean,expected boolean DEFAULT false) RETURNS boolean
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
+DECLARE current_enabled boolean;
+BEGIN
+ IF auth.uid() IS NULL OR NOT public.v4_credentials_ready() OR NOT public.v4_admin() THEN
+  RAISE EXCEPTION 'Chỉ quản trị hệ thống được cấp quyền Ban Giám Hiệu';
+ END IF;
+ IF enabled IS NULL OR expected IS NULL THEN RAISE EXCEPTION 'Quyền không hợp lệ'; END IF;
+ PERFORM 1 FROM public.v4_teachers WHERE user_id=target FOR UPDATE;
+ IF NOT FOUND THEN RAISE EXCEPTION 'Chọn tài khoản giáo viên đã được cấp'; END IF;
+ SELECT r.enabled INTO current_enabled FROM public.v4_school_report_roles r WHERE user_id=target;
+ IF coalesce(current_enabled,false)<>expected THEN RAISE EXCEPTION 'Quyền vừa thay đổi. Tải lại danh sách trước khi lưu'; END IF;
+ INSERT INTO public.v4_school_report_roles(user_id,enabled,updated_by)
+ VALUES(target,enabled,auth.uid()) ON CONFLICT(user_id) DO UPDATE
+ SET enabled=excluded.enabled,updated_by=excluded.updated_by,updated_at=now();
+ INSERT INTO public.v4_school_report_role_events(target_id,actor_id,enabled) VALUES(target,auth.uid(),enabled);
+ RETURN enabled;
+END $$;
+REVOKE ALL ON FUNCTION public.v4_school_report_access(),public.v4_set_school_report_role(uuid,boolean,boolean) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.v4_school_report_access(),public.v4_set_school_report_role(uuid,boolean,boolean) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.v4_school_report(
+ y text,c text,d1 date,d2 date,range_kind text DEFAULT 'week',include_details boolean DEFAULT true)
+RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=public,pg_temp AS $$
+DECLARE cls text:=nullif(btrim(c),''); admin_access boolean; home_access boolean; aggregate_access boolean;
+ detail_count bigint; result jsonb;
+BEGIN
+ IF auth.uid() IS NULL THEN RAISE EXCEPTION 'Cần đăng nhập để xem báo cáo'; END IF;
+ IF NOT public.v4_credentials_ready() THEN RAISE EXCEPTION 'Cần đổi mật khẩu trước khi xem dữ liệu lớp'; END IF;
+ IF y IS NULL OR y !~ '^[0-9]{4}-[0-9]{4}$' OR split_part(y,'-',2)::integer<>split_part(y,'-',1)::integer+1 THEN
+  RAISE EXCEPTION 'Năm học không hợp lệ';
+ END IF;
+ IF d1 IS NULL OR d2 IS NULL OR d2<d1 OR d2-d1>369 THEN
+  RAISE EXCEPTION 'Khoảng báo cáo phải từ 1 đến 370 ngày';
+ END IF;
+ IF range_kind IS NULL OR range_kind NOT IN('week','month','semester','custom') OR include_details IS NULL THEN
+  RAISE EXCEPTION 'Loại báo cáo không hợp lệ';
+ END IF;
+ IF NOT public.v4_school_report_access() THEN RAISE EXCEPTION 'Không có quyền Ban Giám Hiệu'; END IF;
+ admin_access:=true;
+ home_access:=false;
+ aggregate_access:=admin_access OR home_access;
+
+ IF NOT admin_access AND (cls IS NULL OR NOT public.v4_actual_class_access(y,cls)) THEN
+  RAISE EXCEPTION 'Không có quyền xem báo cáo lớp này';
+ END IF;
+ IF NOT admin_access AND NOT home_access AND range_kind<>'week' THEN
+  RAISE EXCEPTION 'Giáo viên bộ môn chỉ xem đánh giá theo tuần';
+ END IF;
+ IF range_kind='week' AND (d2-d1>6 OR date_trunc('week',d1::timestamp)<>date_trunc('week',d2::timestamp)) THEN
+  RAISE EXCEPTION 'Chọn các ngày trong cùng một tuần từ thứ Hai đến Chủ nhật';
+ ELSIF range_kind='month' AND date_trunc('month',d1::timestamp)<>date_trunc('month',d2::timestamp) THEN
+  RAISE EXCEPTION 'Chọn các ngày trong cùng một tháng';
+ ELSIF range_kind='semester' AND d2-d1>219 THEN
+  RAISE EXCEPTION 'Khoảng học kỳ tối đa 220 ngày; chọn mốc thực tế của trường';
+ ELSIF range_kind='custom' AND NOT admin_access THEN
+  RAISE EXCEPTION 'Khoảng tùy chọn chỉ dành cho quản trị';
+ END IF;
+ IF NOT aggregate_access AND d2>date_trunc('week',public.v4_school_today()::timestamp)::date+6 THEN
+  RAISE EXCEPTION 'Chỉ xem được tuần hiện tại hoặc các tuần trước';
+ END IF;
+ -- Never silently truncate an export. Aggregated reports remain available for
+ -- a whole school year; request a shorter range/class for very large details.
+ IF include_details THEN
+  SELECT
+   (SELECT count(*) FROM public.v4_attendance a JOIN public.v4_sessions s ON s.id=a.session_id
+    WHERE s.school_year=y AND (cls IS NULL OR s.class_code=cls) AND s.lesson_date BETWEEN d1 AND d2)
+   +(SELECT count(*) FROM public.v4_observations o LEFT JOIN public.v4_sessions s ON s.id=o.session_id
+     WHERE o.category<>'health' AND o.school_year=y AND (cls IS NULL OR o.class_code=cls)
+      AND coalesce(s.lesson_date,(o.observed_at AT TIME ZONE 'Asia/Ho_Chi_Minh')::date) BETWEEN d1 AND d2)
+   +(SELECT count(*) FROM public.v4_support_logs l WHERE false AND l.school_year=y AND (cls IS NULL OR l.class_code=cls)
+     AND (l.created_at AT TIME ZONE 'Asia/Ho_Chi_Minh')::date BETWEEN d1 AND d2)
+  INTO detail_count;
+  IF detail_count>200000 THEN RAISE EXCEPTION 'Báo cáo có hơn 200000 dòng chi tiết. Chọn một lớp hoặc khoảng ngắn hơn, hoặc xem tổng hợp.'; END IF;
+ END IF;
+ WITH
+ roster AS MATERIALIZED (
+  SELECT s.id,s.school_year,s.class_code,s.student_code,s.full_name,s.active FROM public.v4_students s
+  WHERE s.school_year=y AND (cls IS NULL OR s.class_code=cls)
+ ), lessons AS MATERIALIZED (
+  SELECT s.id,s.school_year,s.class_code,s.lesson_date,s.period_no,s.subject,s.teacher_id,t.teacher_name,
+   coalesce(s.ended_at,CASE WHEN s.scheduled_end_at<=statement_timestamp() THEN s.scheduled_end_at END) AS ended_at,
+   s.scheduled_end_at,
+   (s.ended_at IS NULL AND coalesce(s.scheduled_end_at<=statement_timestamp(),false)) AS is_auto_ended
+  FROM public.v4_sessions s LEFT JOIN public.v4_teachers t ON t.user_id=s.teacher_id
+  WHERE s.school_year=y AND (cls IS NULL OR s.class_code=cls) AND s.lesson_date BETWEEN d1 AND d2
+ ), att AS MATERIALIZED (
+  SELECT a.session_id,a.student_id,a.status,NULL::text AS note,a.updated_at FROM public.v4_attendance a JOIN lessons s ON s.id=a.session_id
+ ), obs AS MATERIALIZED (
+  SELECT o.id,o.student_id,o.school_year,o.class_code,o.session_id,o.observed_at,o.category,o.behavior_code,
+   o.activity_context,o.note,o.is_alert,o.attention_kind,o.created_by,t.teacher_name,
+   s.lesson_date,s.period_no,s.subject
+  FROM public.v4_observations o LEFT JOIN public.v4_sessions s ON s.id=o.session_id
+   LEFT JOIN public.v4_teachers t ON t.user_id=o.created_by
+  WHERE o.category<>'health' AND o.school_year=y AND (cls IS NULL OR o.class_code=cls)
+   AND coalesce(s.lesson_date,(o.observed_at AT TIME ZONE 'Asia/Ho_Chi_Minh')::date) BETWEEN d1 AND d2
+ ), support AS MATERIALIZED (
+  SELECT l.id,l.school_year,l.class_code,l.student_id,l.activity_type,l.content,l.follow_up_on,l.created_at,l.created_by
+  FROM public.v4_support_logs l WHERE false AND l.school_year=y AND (cls IS NULL OR l.class_code=cls)
+   AND (l.created_at AT TIME ZONE 'Asia/Ho_Chi_Minh')::date BETWEEN d1 AND d2
+ ), class_lessons AS (
+  SELECT class_code,count(*) AS total_sessions FROM lessons WHERE aggregate_access GROUP BY class_code
+ ), student_att AS (
+  SELECT student_id,count(*) AS confirmed,
+   count(*) FILTER(WHERE status='present') AS present,count(*) FILTER(WHERE status='absent') AS absent,
+   count(*) FILTER(WHERE status='late') AS late,count(*) FILTER(WHERE status='excused') AS excused
+  FROM att WHERE aggregate_access GROUP BY student_id
+ ), student_obs AS (
+  SELECT student_id,count(*) FILTER(WHERE category='positive') AS positive,
+   count(*) FILTER(WHERE category='concern') AS concern,count(*) FILTER(WHERE category='health') AS health
+  FROM obs WHERE aggregate_access GROUP BY student_id
+ ), lesson_att AS (
+  SELECT session_id,count(*) AS attendance_confirmed,
+   count(*) FILTER(WHERE status='present') AS present,count(*) FILTER(WHERE status='absent') AS absent,
+   count(*) FILTER(WHERE status='late') AS late,count(*) FILTER(WHERE status='excused') AS excused
+  FROM att GROUP BY session_id
+ ), lesson_obs AS (
+  SELECT session_id,count(*) FILTER(WHERE category='positive') AS positive,
+   count(*) FILTER(WHERE category='concern') AS concern,count(*) FILTER(WHERE category='health') AS health
+  FROM obs WHERE session_id IS NOT NULL GROUP BY session_id
+ ), student_rows AS (
+  SELECT s.*,coalesce(l.total_sessions,0) AS total_sessions,coalesce(a.confirmed,0) AS confirmed,
+   coalesce(a.present,0) AS present,coalesce(a.absent,0) AS absent,coalesce(a.late,0) AS late,coalesce(a.excused,0) AS excused,
+   NULL::bigint AS unrecorded,
+   coalesce(o.positive,0) AS positive,coalesce(o.concern,0) AS concern,coalesce(o.health,0) AS health
+  FROM roster s LEFT JOIN class_lessons l USING(class_code) LEFT JOIN student_att a ON a.student_id=s.id LEFT JOIN student_obs o ON o.student_id=s.id
+  WHERE aggregate_access
+ ), lesson_rows AS (
+  SELECT s.*,coalesce(a.attendance_confirmed,0) AS attendance_confirmed,
+   coalesce(a.present,0) AS present,coalesce(a.absent,0) AS absent,coalesce(a.late,0) AS late,coalesce(a.excused,0) AS excused,
+   NULL::bigint AS unrecorded,
+   coalesce(o.positive,0) AS positive,coalesce(o.concern,0) AS concern,coalesce(o.health,0) AS health
+  FROM lessons s LEFT JOIN lesson_att a ON a.session_id=s.id LEFT JOIN lesson_obs o ON o.session_id=s.id
+ ), class_codes AS (
+  SELECT class_code FROM roster UNION SELECT class_code FROM lessons UNION SELECT class_code FROM obs
+ )
+ SELECT jsonb_build_object(
+  'range',jsonb_build_object('school_year',y,'class_code',cls,'start',d1,'end',d2,'kind',range_kind),
+  'details_included',include_details,
+  'lesson_reviews','[]'::jsonb,
+  'roster_basis','current_roster',
+  'attendance_completeness','unknown_membership_history',
+  'permissions',jsonb_build_object('admin',false,'homeroom',false,'aggregate',true,'export',false,'school_viewer',true,'health',false,'support',false),
+  'classes',coalesce((SELECT jsonb_agg(jsonb_build_object('class_code',cc.class_code)
+   || CASE WHEN aggregate_access THEN jsonb_build_object(
+    'students',(SELECT count(*) FROM roster r WHERE r.class_code=cc.class_code AND r.active),
+    'sessions',(SELECT count(*) FROM lessons s WHERE s.class_code=cc.class_code)) ELSE '{}'::jsonb END
+   ORDER BY cc.class_code) FROM class_codes cc),'[]'::jsonb),
+  'students',CASE WHEN aggregate_access THEN
+   coalesce((SELECT jsonb_agg(to_jsonb(r) ORDER BY r.class_code,r.student_code,r.id) FROM student_rows r),'[]'::jsonb)
+   ELSE coalesce((SELECT jsonb_agg(to_jsonb(r) ORDER BY r.class_code,r.student_code,r.id) FROM roster r),'[]'::jsonb) END,
+  'sessions',coalesce((SELECT jsonb_agg(to_jsonb(s) ORDER BY s.lesson_date,s.period_no,s.class_code,s.id) FROM lesson_rows s),'[]'::jsonb),
+  'attendance',CASE WHEN include_details THEN coalesce((SELECT jsonb_agg(to_jsonb(a) ORDER BY a.session_id,a.student_id) FROM att a),'[]'::jsonb) ELSE '[]'::jsonb END,
+  'observations',CASE WHEN include_details THEN coalesce((SELECT jsonb_agg(to_jsonb(o) ORDER BY o.observed_at,o.id) FROM obs o),'[]'::jsonb) ELSE '[]'::jsonb END,
+  'support_logs',CASE WHEN include_details THEN coalesce((SELECT jsonb_agg(to_jsonb(l) ORDER BY l.created_at,l.id) FROM support l),'[]'::jsonb) ELSE '[]'::jsonb END
+ ) || CASE WHEN aggregate_access THEN jsonb_build_object(
+  'summary',jsonb_build_object('students',(SELECT count(*) FROM roster WHERE active),'sessions',(SELECT count(*) FROM lessons),
+   'attendance_recorded',(SELECT count(*) FROM att),'positive',(SELECT count(*) FROM obs WHERE category='positive'),
+   'concern',(SELECT count(*) FROM obs WHERE category='concern'),'health',(SELECT count(*) FROM obs WHERE category='health')))
+  ELSE '{}'::jsonb END INTO result;
+ RETURN result;
+END $$;
+REVOKE ALL ON FUNCTION public.v4_school_report(text,text,date,date,text,boolean) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.v4_school_report(text,text,date,date,text,boolean) TO authenticated;
+
+NOTIFY pgrst, 'reload schema';
+
+-- SOURCE 31_v6_account_activity.sql
+CREATE TABLE IF NOT EXISTS public.v4_account_visits(
+ user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+ session_key text NOT NULL,first_seen timestamptz NOT NULL DEFAULT now(),last_seen timestamptz NOT NULL DEFAULT now(),
+ PRIMARY KEY(user_id,session_key)
+);
+ALTER TABLE public.v4_account_visits ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.v4_account_visits FROM PUBLIC,anon,authenticated;
+CREATE OR REPLACE FUNCTION public.v4_record_account_visit() RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
+DECLARE claims jsonb; session_value text;
+BEGIN
+ IF auth.uid() IS NULL OR NOT public.v4_credentials_ready() THEN RAISE EXCEPTION 'Cần đăng nhập'; END IF;
+ claims:=coalesce(nullif(current_setting('request.jwt.claims',true),'')::jsonb,'{}'::jsonb);
+ session_value:=nullif(claims->>'session_id','');
+ IF session_value IS NULL THEN RETURN; END IF;
+ INSERT INTO public.v4_account_visits(user_id,session_key) VALUES(auth.uid(),session_value)
+ ON CONFLICT(user_id,session_key) DO UPDATE SET last_seen=now()
+ WHERE public.v4_account_visits.last_seen<now()-interval '2 minutes';
+END $$;
+CREATE OR REPLACE FUNCTION public.v4_account_activity_summary() RETURNS jsonb
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=public,pg_temp AS $$
+BEGIN
+ IF auth.uid() IS NULL OR NOT public.v4_credentials_ready() OR NOT public.v4_admin() THEN RAISE EXCEPTION 'Chỉ quản trị được xem hoạt động tài khoản'; END IF;
+ RETURN coalesce((SELECT jsonb_agg(jsonb_build_object(
+  'user_id',t.user_id,'first_seen',v.first_seen,'last_seen',v.last_seen,'sessions_30d',v.sessions_30d,
+  'lessons_30d',(SELECT count(*) FROM public.v4_sessions s WHERE s.teacher_id=t.user_id AND s.lesson_date BETWEEN public.v4_school_today()-29 AND public.v4_school_today()),
+  'observations_30d',(SELECT count(*) FROM public.v4_observations o WHERE o.created_by=t.user_id AND o.observed_at>=now()-interval '30 days'),
+  'attendance_30d',(SELECT count(*) FROM public.v4_attendance a JOIN public.v4_sessions s ON s.id=a.session_id WHERE s.teacher_id=t.user_id AND s.lesson_date BETWEEN public.v4_school_today()-29 AND public.v4_school_today())
+ )) FROM public.v4_teachers t LEFT JOIN LATERAL(
+  SELECT min(first_seen) first_seen,max(last_seen) last_seen,count(*) FILTER(WHERE first_seen>=now()-interval '30 days') sessions_30d
+  FROM public.v4_account_visits WHERE user_id=t.user_id
+ ) v ON true),'[]'::jsonb);
+END $$;
+CREATE OR REPLACE FUNCTION public.v4_account_visit_history(target uuid) RETURNS jsonb
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=public,pg_temp AS $$
+BEGIN
+ IF auth.uid() IS NULL OR NOT public.v4_credentials_ready() OR NOT public.v4_admin() THEN RAISE EXCEPTION 'Chỉ quản trị được xem lịch sử đăng nhập'; END IF;
+ RETURN coalesce((SELECT jsonb_agg(to_jsonb(v)) FROM(
+  SELECT first_seen,last_seen FROM public.v4_account_visits WHERE user_id=target ORDER BY first_seen DESC LIMIT 100
+ )v),'[]'::jsonb);
+END $$;
+REVOKE ALL ON FUNCTION public.v4_record_account_visit(),public.v4_account_activity_summary(),public.v4_account_visit_history(uuid) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.v4_record_account_visit(),public.v4_account_activity_summary(),public.v4_account_visit_history(uuid) TO authenticated;
+NOTIFY pgrst,'reload schema';
+
+-- SOURCE 32_v6_attendance_confirmation.sql
+-- Apply after31. Automatic presence is derived from a saved roster and server
+-- clock, so it works with the browser closed and never impersonates a teacher.
+
+DO $$ BEGIN
+ IF to_regprocedure('public.v4_account_activity_summary()') IS NULL THEN
+  RAISE EXCEPTION 'Cần cập nhật module đến31 trước khi cập nhật điểm danh';
+ END IF;
+END $$;
+ALTER TABLE public.v4_sessions ADD COLUMN IF NOT EXISTS attendance_policy_version smallint NOT NULL DEFAULT 0;
+ALTER TABLE public.v4_sessions ALTER COLUMN attendance_policy_version SET DEFAULT 1;
+CREATE TABLE IF NOT EXISTS public.v4_session_roster(
+ session_id uuid NOT NULL REFERENCES public.v4_sessions(id) ON DELETE CASCADE,
+ student_id uuid NOT NULL REFERENCES public.v4_students(id),
+ PRIMARY KEY(session_id,student_id)
+);
+ALTER TABLE public.v4_session_roster ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.v4_session_roster FROM PUBLIC,anon,authenticated;
+CREATE OR REPLACE FUNCTION public.v4_capture_session_roster() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
+BEGIN
+ INSERT INTO public.v4_session_roster(session_id,student_id)
+ SELECT NEW.id,id FROM public.v4_students WHERE school_year=NEW.school_year AND class_code=NEW.class_code AND active;
+ RETURN NEW;
+END $$;
+-- A student removed later in the day still belongs to the saved lesson roster.
+CREATE OR REPLACE FUNCTION public.v4_validate_attendance() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
+DECLARE lesson public.v4_sessions;
+BEGIN
+ SELECT * INTO lesson FROM public.v4_sessions WHERE id=NEW.session_id;
+ IF NOT FOUND OR NOT (public.v4_student_class(NEW.student_id,lesson.school_year,lesson.class_code)
+  OR EXISTS(SELECT 1 FROM public.v4_session_roster r WHERE r.session_id=NEW.session_id AND r.student_id=NEW.student_id)) THEN
+  RAISE EXCEPTION 'Học sinh không thuộc tiết học';
+ END IF;
+ RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION public.v4_validate_attendance() FROM PUBLIC,anon,authenticated;
+CREATE OR REPLACE FUNCTION public.v4_attendance_policy_guard() RETURNS trigger
+LANGUAGE plpgsql SET search_path=public,pg_temp AS $$
+BEGIN
+ IF TG_OP='INSERT' THEN NEW.attendance_policy_version:=1;
+ ELSIF NEW.attendance_policy_version IS DISTINCT FROM OLD.attendance_policy_version THEN
+  RAISE EXCEPTION 'Không được thay đổi chính sách điểm danh của tiết đã mở';
+ END IF;
+ RETURN NEW;
+END $$;
+DROP TRIGGER IF EXISTS v4_attendance_policy ON public.v4_sessions;
+CREATE TRIGGER v4_attendance_policy BEFORE INSERT OR UPDATE ON public.v4_sessions FOR EACH ROW EXECUTE FUNCTION public.v4_attendance_policy_guard();
+DROP TRIGGER IF EXISTS v4_capture_roster ON public.v4_sessions;
+CREATE TRIGGER v4_capture_roster AFTER INSERT ON public.v4_sessions FOR EACH ROW EXECUTE FUNCTION public.v4_capture_session_roster();
+REVOKE ALL ON FUNCTION public.v4_capture_session_roster(),public.v4_attendance_policy_guard() FROM PUBLIC,anon,authenticated;
+
+-- Internal summary. Callers expose only the fields their role is permitted to see.
+CREATE OR REPLACE FUNCTION public.v4_completion_rows(y text,c text,d1 date,d2 date,scope_kind text)
+RETURNS TABLE(id uuid,class_code text,lesson_date date,period_no integer,subject text,teacher_name text,
+ teacher_id uuid,expected bigint,confirmed bigint,automatic_present bigint,missing bigint,
+ absent bigint,late bigint,excused bigint,attendance_state text,review_confirmed boolean,can_write boolean)
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public,pg_temp AS $$
+ WITH lessons AS MATERIALIZED (
+  SELECT s.* FROM public.v4_sessions s WHERE s.school_year=y AND (nullif(c,'') IS NULL OR s.class_code=c)
+   AND s.lesson_date BETWEEN d1 AND d2 AND (
+    scope_kind='school' AND (public.v4_admin() OR public.v4_school_report_access()) OR
+    scope_kind='own' AND s.teacher_id=auth.uid() AND public.v4_actual_class_access(y,s.class_code) OR
+    scope_kind='homeroom' AND public.v4_actual_homeroom(y,s.class_code) OR
+    scope_kind='class' AND (public.v4_admin() OR public.v4_actual_class_access(y,s.class_code))
+   )
+ ), roster_counts AS (
+  SELECT session_id,count(*) AS n FROM (
+   SELECT r.session_id,r.student_id FROM public.v4_session_roster r JOIN lessons l ON l.id=r.session_id
+   UNION
+   SELECT a.session_id,a.student_id FROM public.v4_attendance a JOIN lessons l ON l.id=a.session_id
+  ) u GROUP BY session_id
+ ), att_counts AS (
+  SELECT a.session_id,count(*) AS recorded,
+   count(*) FILTER(WHERE a.status='absent') AS a,
+   count(*) FILTER(WHERE a.status='late') AS l,
+   count(*) FILTER(WHERE a.status='excused') AS e
+  FROM public.v4_attendance a JOIN lessons l ON l.id=a.session_id GROUP BY a.session_id
+ ), rev_sessions AS (
+  SELECT DISTINCT r.session_id FROM public.v4_lesson_reviews r JOIN lessons l ON l.id=r.session_id
+ ), counts AS (
+  SELECT s.*,t.teacher_name,
+   CASE WHEN s.attendance_policy_version=1 THEN coalesce(rc.n,0) END n,
+   coalesce(ac.recorded,0) recorded,
+   coalesce(ac.a,0) a,
+   coalesce(ac.l,0) l,
+   coalesce(ac.e,0) e,
+   (rs.session_id IS NOT NULL) has_review
+  FROM lessons s LEFT JOIN public.v4_teachers t ON t.user_id=s.teacher_id
+   LEFT JOIN roster_counts rc ON rc.session_id=s.id
+   LEFT JOIN att_counts ac ON ac.session_id=s.id
+   LEFT JOIN rev_sessions rs ON rs.session_id=s.id
+ )
+ SELECT s.id,s.class_code,s.lesson_date,s.period_no,s.subject,s.teacher_name,s.teacher_id,s.n,s.recorded,
+  CASE WHEN s.attendance_policy_version=1 AND s.ended_at IS NULL AND s.scheduled_end_at<=statement_timestamp()
+   THEN greatest(0,s.n-s.recorded) ELSE 0 END,
+  CASE WHEN s.n IS NOT NULL THEN greatest(0,s.n-s.recorded) END,
+  s.a,s.l,s.e,
+  CASE WHEN s.n IS NULL THEN 'legacy_unknown' WHEN s.n=0 THEN 'empty'
+   WHEN s.recorded>=s.n THEN 'confirmed' ELSE 'pending' END,
+  s.has_review,
+  public.v4_check_lesson_writable(s.id)
+ FROM counts s
+$$;
+REVOKE ALL ON FUNCTION public.v4_completion_rows(text,text,date,date,text) FROM PUBLIC,anon,authenticated;
+
+CREATE OR REPLACE FUNCTION public.v4_attendance_state(sess uuid) RETURNS jsonb
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=public,pg_temp AS $$
+DECLARE lesson public.v4_sessions; summary jsonb; automatic jsonb;
+BEGIN
+ SELECT * INTO lesson FROM public.v4_sessions WHERE id=sess;
+ IF NOT FOUND OR NOT public.v4_credentials_ready() OR NOT public.v4_has_class(lesson.school_year,lesson.class_code) THEN
+  RAISE EXCEPTION 'Không có quyền xem điểm danh của tiết';
+ END IF;
+ SELECT to_jsonb(r) INTO summary FROM public.v4_completion_rows(lesson.school_year,lesson.class_code,lesson.lesson_date,lesson.lesson_date,'class') r WHERE r.id=sess;
+ SELECT coalesce(jsonb_agg(jsonb_build_object('session_id',sess,'student_id',r.student_id,'status','present','source','automatic','confirmed',false)),'[]'::jsonb)
+ INTO automatic FROM public.v4_session_roster r WHERE r.session_id=sess
+  AND lesson.attendance_policy_version=1 AND lesson.ended_at IS NULL AND lesson.scheduled_end_at<=statement_timestamp()
+  AND NOT EXISTS(SELECT 1 FROM public.v4_attendance a WHERE a.session_id=sess AND a.student_id=r.student_id);
+ RETURN jsonb_build_object('summary',summary,'automatic',automatic,'server_today',public.v4_school_today(),'roster_ids',CASE WHEN lesson.attendance_policy_version=1 THEN coalesce((SELECT jsonb_agg(student_id) FROM public.v4_session_roster WHERE session_id=sess),'[]'::jsonb) END);
+END $$;
+
+CREATE TABLE IF NOT EXISTS public.v4_attendance_confirmation_events(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(),session_id uuid NOT NULL REFERENCES public.v4_sessions(id),
+ actor_id uuid NOT NULL REFERENCES auth.users(id),confirmed_at timestamptz NOT NULL DEFAULT statement_timestamp(),
+ added_students jsonb NOT NULL
+);
+ALTER TABLE public.v4_attendance_confirmation_events ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.v4_attendance_confirmation_events FROM PUBLIC,anon,authenticated;
+CREATE OR REPLACE FUNCTION public.v4_confirm_attendance(sess uuid,expected_rows jsonb) RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
+DECLARE lesson public.v4_sessions; actual jsonb; added jsonb;
+BEGIN
+ SELECT * INTO lesson FROM public.v4_sessions WHERE id=sess FOR UPDATE;
+ IF NOT FOUND OR NOT public.v4_credentials_ready() OR NOT public.v4_check_lesson_writable(sess) THEN
+  RAISE EXCEPTION 'Chỉ giáo viên phụ trách được xác nhận điểm danh trong ngày học';
+ END IF;
+ IF expected_rows IS NULL OR jsonb_typeof(expected_rows)<>'array' THEN RAISE EXCEPTION 'Cần đọc lại điểm danh trước khi xác nhận'; END IF;
+ -- Locking each attendance row makes a status edit serialize with this check.
+ PERFORM 1 FROM public.v4_attendance WHERE session_id=sess ORDER BY student_id FOR UPDATE;
+ SELECT coalesce(jsonb_agg(jsonb_build_object('student_id',student_id,'status',status,'note',note,'updated_at',updated_at) ORDER BY student_id),'[]'::jsonb)
+ INTO actual FROM public.v4_attendance WHERE session_id=sess;
+ SELECT coalesce(jsonb_agg(jsonb_build_object('student_id',student_id,'status',status,'note',note,'updated_at',updated_at) ORDER BY student_id),'[]'::jsonb) INTO expected_rows FROM jsonb_to_recordset(expected_rows) AS r(student_id uuid,status text,note text,updated_at timestamptz);
+ IF expected_rows IS NULL OR actual<>expected_rows THEN RAISE EXCEPTION 'Điểm danh đã thay đổi ở nơi khác. Hãy làm mới và kiểm tra trước khi xác nhận'; END IF;
+ WITH inserted AS (
+  INSERT INTO public.v4_attendance(session_id,student_id,status,note,updated_by)
+  SELECT sess,r.student_id,'present','',auth.uid() FROM (
+   SELECT student_id FROM public.v4_session_roster WHERE session_id=sess
+   UNION SELECT id FROM public.v4_students WHERE school_year=lesson.school_year AND class_code=lesson.class_code AND active
+  ) r ON CONFLICT DO NOTHING RETURNING student_id
+ ) SELECT coalesce(jsonb_agg(student_id),'[]'::jsonb) INTO added FROM inserted;
+ IF jsonb_array_length(added)>0 THEN
+  INSERT INTO public.v4_attendance_confirmation_events(session_id,actor_id,added_students) VALUES(sess,auth.uid(),added);
+ END IF;
+ RETURN public.v4_attendance_state(sess);
+END $$;
+-- A normal REST status change and batch confirmation share the session lock.
+CREATE OR REPLACE FUNCTION public.v4_attendance_session_lock() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
+BEGIN PERFORM 1 FROM public.v4_sessions WHERE id=NEW.session_id FOR UPDATE; RETURN NEW; END $$;
+DROP TRIGGER IF EXISTS v4_attendance_session_lock ON public.v4_attendance;
+CREATE TRIGGER v4_attendance_session_lock BEFORE INSERT OR UPDATE ON public.v4_attendance FOR EACH ROW EXECUTE FUNCTION public.v4_attendance_session_lock();
+REVOKE ALL ON FUNCTION public.v4_attendance_session_lock() FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.v4_attendance_state(uuid),public.v4_confirm_attendance(uuid,jsonb) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.v4_attendance_state(uuid),public.v4_confirm_attendance(uuid,jsonb) TO authenticated;
+NOTIFY pgrst,'reload schema';
+
+-- SOURCE 33_v6_overview_quick_reviews.sql
+-- Apply after32. Overview only returns counts and lesson identities, no health notes.
+
+DO $$ BEGIN IF to_regprocedure('public.v4_attendance_state(uuid)') IS NULL THEN RAISE EXCEPTION 'Cần cập nhật32 trước33'; END IF; END $$;
+ALTER TABLE public.v4_lesson_reviews ADD COLUMN IF NOT EXISTS rating text CHECK(rating IN('positive','adequate','reminder','support'));
+ALTER TABLE public.v4_lesson_reviews ADD COLUMN IF NOT EXISTS detail_note text;
+-- A still-open older client may save a plain text review. Clear a previous
+-- quick rating when that client changes the note without its rating fields.
+CREATE OR REPLACE FUNCTION public.v4_plain_review_guard() RETURNS trigger
+LANGUAGE plpgsql SET search_path=public,pg_temp AS $$
+BEGIN
+ IF NEW.note IS DISTINCT FROM OLD.note AND NEW.rating IS NOT DISTINCT FROM OLD.rating
+  AND NEW.detail_note IS NOT DISTINCT FROM OLD.detail_note THEN NEW.rating:=NULL;NEW.detail_note:=NULL;END IF;
+ RETURN NEW;
+END $$;
+DROP TRIGGER IF EXISTS v4_plain_review ON public.v4_lesson_reviews;
+CREATE TRIGGER v4_plain_review BEFORE UPDATE ON public.v4_lesson_reviews FOR EACH ROW EXECUTE FUNCTION public.v4_plain_review_guard();
+REVOKE ALL ON FUNCTION public.v4_plain_review_guard() FROM PUBLIC,anon,authenticated;
+CREATE OR REPLACE FUNCTION public.v4_save_quick_review(sess uuid,rating_code text,content text,expected_at timestamptz DEFAULT NULL) RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
+DECLARE lesson public.v4_sessions; previous public.v4_lesson_reviews; saved public.v4_lesson_reviews; caption text;
+BEGIN
+ SELECT * INTO lesson FROM public.v4_sessions WHERE id=sess FOR UPDATE;
+ IF NOT FOUND OR NOT public.v4_credentials_ready() OR NOT public.v4_check_lesson_writable(sess) THEN
+  RAISE EXCEPTION 'Chỉ giáo viên phụ trách được nhận định tiết học trong ngày';
+ END IF;
+ caption:=CASE rating_code WHEN 'positive' THEN 'Học tập tích cực' WHEN 'adequate' THEN 'Cơ bản đạt yêu cầu'
+  WHEN 'reminder' THEN 'Cần nhắc nhở' WHEN 'support' THEN 'Cần hỗ trợ thêm' END;
+ IF (rating_code IS NOT NULL AND caption IS NULL) OR content IS NULL OR length(content)>900 OR (rating_code IS NULL AND length(btrim(content))<3) THEN RAISE EXCEPTION 'Chọn nhận định hợp lệ và ghi chú tối đa 900 ký tự'; END IF;
+ SELECT * INTO previous FROM public.v4_lesson_reviews WHERE session_id=sess FOR UPDATE;
+ IF previous.confirmed_at IS DISTINCT FROM expected_at THEN RAISE EXCEPTION 'Nhận định đã thay đổi ở nơi khác. Hãy làm mới trước khi lưu'; END IF;
+ INSERT INTO public.v4_lesson_reviews(session_id,school_year,class_code,lesson_date,teacher_id,note,rating,detail_note)
+ VALUES(sess,lesson.school_year,lesson.class_code,lesson.lesson_date,auth.uid(),CASE WHEN caption IS NULL THEN btrim(content) ELSE caption||CASE WHEN btrim(content)<>'' THEN ' — '||btrim(content) ELSE '' END END,rating_code,btrim(content))
+ ON CONFLICT(session_id) DO UPDATE SET note=excluded.note,rating=excluded.rating,detail_note=excluded.detail_note,confirmed_at=statement_timestamp()
+ RETURNING * INTO saved;
+ RETURN to_jsonb(saved);
+END $$;
+REVOKE ALL ON FUNCTION public.v4_save_quick_review(uuid,text,text,timestamptz) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.v4_save_quick_review(uuid,text,text,timestamptz) TO authenticated;
+
+CREATE TABLE IF NOT EXISTS public.v4_attendance_changes(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(),session_id uuid NOT NULL REFERENCES public.v4_sessions(id),
+ student_id uuid NOT NULL REFERENCES public.v4_students(id),actor_id uuid NOT NULL REFERENCES auth.users(id),
+ changed_at timestamptz NOT NULL DEFAULT statement_timestamp(),old_value jsonb,new_value jsonb NOT NULL
+);
+CREATE INDEX IF NOT EXISTS v4_attendance_changes_session ON public.v4_attendance_changes(session_id,changed_at DESC);
+ALTER TABLE public.v4_attendance_changes ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.v4_attendance_changes FROM PUBLIC,anon,authenticated;
+CREATE OR REPLACE FUNCTION public.v4_capture_attendance_change() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
+DECLARE prior jsonb;
+BEGIN
+ IF TG_OP='UPDATE' THEN
+  IF ROW(NEW.status,NEW.note) IS NOT DISTINCT FROM ROW(OLD.status,OLD.note) THEN RETURN NEW; END IF;
+  prior:=jsonb_build_object('status',OLD.status,'note',OLD.note,'source','teacher');
+ ELSE
+  IF EXISTS(SELECT 1 FROM public.v4_sessions s JOIN public.v4_session_roster r ON r.session_id=s.id
+   WHERE s.id=NEW.session_id AND r.student_id=NEW.student_id AND s.attendance_policy_version=1 AND s.ended_at IS NULL AND s.scheduled_end_at<=statement_timestamp()) THEN
+   prior:=jsonb_build_object('status','present','source','automatic','confirmed',false);
+  END IF;
+ END IF;
+ INSERT INTO public.v4_attendance_changes(session_id,student_id,actor_id,old_value,new_value)
+ VALUES(NEW.session_id,NEW.student_id,coalesce(auth.uid(),NEW.updated_by),prior,jsonb_build_object('status',NEW.status,'note',NEW.note,'source','teacher','confirmed',true));
+ RETURN NEW;
+END $$;
+DROP TRIGGER IF EXISTS v4_attendance_changes ON public.v4_attendance;
+CREATE TRIGGER v4_attendance_changes AFTER INSERT OR UPDATE ON public.v4_attendance FOR EACH ROW EXECUTE FUNCTION public.v4_capture_attendance_change();
+REVOKE ALL ON FUNCTION public.v4_capture_attendance_change() FROM PUBLIC,anon,authenticated;
+CREATE OR REPLACE FUNCTION public.v4_attendance_history(sess uuid) RETURNS jsonb
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=public,pg_temp AS $$
+DECLARE lesson public.v4_sessions;
+BEGIN
+ SELECT * INTO lesson FROM public.v4_sessions WHERE id=sess;
+ IF NOT FOUND OR NOT public.v4_credentials_ready() OR NOT public.v4_actual_class_access(lesson.school_year,lesson.class_code)
+  OR NOT (lesson.teacher_id=auth.uid() OR public.v4_actual_homeroom(lesson.school_year,lesson.class_code)) THEN
+  RAISE EXCEPTION 'Không có quyền xem lịch sử điều chỉnh của tiết';
+ END IF;
+ RETURN coalesce((SELECT jsonb_agg(to_jsonb(r)) FROM (
+  SELECT h.changed_at,h.old_value,h.new_value,s.full_name,t.teacher_name FROM public.v4_attendance_changes h
+  JOIN public.v4_students s ON s.id=h.student_id LEFT JOIN public.v4_teachers t ON t.user_id=h.actor_id
+  WHERE h.session_id=sess ORDER BY h.changed_at DESC,h.id DESC LIMIT 100
+ ) r),'[]'::jsonb);
+END $$;
+REVOKE ALL ON FUNCTION public.v4_attendance_history(uuid) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.v4_attendance_history(uuid) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.v4_report_completion(y text,c text,d1 date,d2 date,scope_kind text DEFAULT 'class') RETURNS jsonb
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=public,pg_temp AS $$
+BEGIN
+ IF NOT public.v4_credentials_ready() OR y IS NULL OR y !~ '^[0-9]{4}-[0-9]{4}$'
+  OR d1 IS NULL OR d2 IS NULL OR d2<d1 OR d2-d1>369 THEN RAISE EXCEPTION 'Khoảng tổng quan không hợp lệ'; END IF;
+ IF scope_kind NOT IN('own','homeroom','class','school') OR scope_kind IS NULL THEN RAISE EXCEPTION 'Phạm vi không hợp lệ'; END IF;
+ IF scope_kind='school' AND NOT(public.v4_admin() OR public.v4_school_report_access()) THEN RAISE EXCEPTION 'Không có quyền xem toàn trường'; END IF;
+ IF scope_kind='class' AND NOT public.v4_admin() AND (nullif(c,'') IS NULL OR NOT public.v4_actual_class_access(y,c)) THEN RAISE EXCEPTION 'Không có quyền xem lớp'; END IF;
+ RETURN jsonb_build_object('completion',coalesce((SELECT jsonb_agg(to_jsonb(r) ORDER BY lesson_date DESC,period_no,class_code)
+  FROM public.v4_completion_rows(y,c,d1,d2,scope_kind) r),'[]'::jsonb),'server_today',public.v4_school_today());
+END $$;
+REVOKE ALL ON FUNCTION public.v4_report_completion(text,text,date,date,text) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.v4_report_completion(text,text,date,date,text) TO authenticated;
+
+-- Today uses the currently active published timetable. Historical completeness
+-- is never inferred from today's timetable. Opened lessons remain a separate count.
+CREATE OR REPLACE FUNCTION public.v4_overview(y text,d1 date,d2 date,scope_kind text DEFAULT 'own') RETURNS jsonb
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=public,pg_temp AS $$
+DECLARE result jsonb; schedule jsonb;
+BEGIN
+ result:=public.v4_report_completion(y,'',d1,d2,scope_kind);
+ SELECT coalesce(jsonb_agg(to_jsonb(e)),'[]'::jsonb) INTO schedule FROM (
+  SELECT DISTINCT t.class_code,t.period_no,t.subject,public.v4_school_today() lesson_date,
+   EXISTS(SELECT 1 FROM public.v4_sessions s WHERE s.school_year=y AND s.class_code=t.class_code
+    AND s.period_no=t.period_no AND s.lesson_date=public.v4_school_today()) opened
+  FROM public.tkb_entries t JOIN public.tkb_versions v ON v.id=t.version_id
+  
+  WHERE v.id=(SELECT id FROM public.tkb_versions WHERE status='published' AND is_active AND school_year=y ORDER BY published_at DESC NULLS LAST,id LIMIT 1)
+   AND (v.effective_date IS NULL OR v.effective_date<=public.v4_school_today())
+   AND t.day_no=extract(isodow FROM public.v4_school_today())::integer+1
+   AND (t.status IS NULL OR t.status='Học') AND public.v4_school_today() BETWEEN d1 AND d2
+   AND (scope_kind='own' AND NOT public.v4_admin() AND public.v4_actual_class_access(y,t.class_code) AND EXISTS(SELECT 1 FROM public.v4_teachers p WHERE p.user_id=auth.uid() AND p.teacher_code=t.teacher_code)
+    OR scope_kind='homeroom' AND public.v4_actual_homeroom(y,t.class_code)
+    OR scope_kind='school' AND (public.v4_admin() OR public.v4_school_report_access()))
+ ) e;
+ RETURN result||jsonb_build_object('scheduled_today',schedule,'scope',scope_kind);
+END $$;
+REVOKE ALL ON FUNCTION public.v4_overview(text,date,date,text) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.v4_overview(text,date,date,text) TO authenticated;
+NOTIFY pgrst,'reload schema';
+
+-- SOURCE 34_v6_admin_seating.sql
+-- Explicit request27/10: administrators may arrange seats, without teaching rights.
+
+DO $$ BEGIN IF to_regprocedure('public.v4_overview(text,date,date,text)') IS NULL THEN RAISE EXCEPTION 'Cần cập nhật33 trước34'; END IF; END $$;
+CREATE OR REPLACE FUNCTION public.v4_can_arrange_seats(y text,c text) RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public,pg_temp AS $$
+ SELECT public.v4_credentials_ready() AND (public.v4_admin() OR public.v4_actual_homeroom(y,c))
+$$;
+REVOKE ALL ON FUNCTION public.v4_can_arrange_seats(text,text) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.v4_can_arrange_seats(text,text) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.v4_set_group_count(y text,c text,n integer)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+DECLARE counts jsonb; i integer;
+BEGIN
+ IF NOT public.v4_can_arrange_seats(y,c) THEN RAISE EXCEPTION 'Chỉ GVCN hoặc quản trị được thay đổi số tổ'; END IF;
+ IF n IS NULL OR n NOT BETWEEN 1 AND 12 THEN RAISE EXCEPTION 'Số tổ phải từ 1 đến 12'; END IF;
+ INSERT INTO public.v4_layouts(school_year,class_code,updated_by) VALUES(y,c,auth.uid()) ON CONFLICT DO NOTHING;
+ SELECT desk_counts INTO counts FROM public.v4_layouts WHERE school_year=y AND class_code=c FOR UPDATE;
+ IF n=jsonb_array_length(counts) THEN RETURN; END IF;
+ IF n<jsonb_array_length(counts) THEN
+  SELECT jsonb_agg(value ORDER BY ord) INTO counts FROM jsonb_array_elements(counts) WITH ORDINALITY t(value,ord) WHERE ord<=n;
+ ELSE
+  FOR i IN jsonb_array_length(counts)+1..n LOOP counts=counts||'[4]'::jsonb; END LOOP;
+ END IF;
+ DELETE FROM public.v4_seats WHERE school_year=y AND class_code=c AND group_no>n;
+ UPDATE public.v4_layouts SET desk_counts=counts,is_confirmed=false,updated_at=now(),updated_by=auth.uid()
+ WHERE school_year=y AND class_code=c;
+END $$;
+
+CREATE OR REPLACE FUNCTION public.v4_assign_seat(y text,c text,g integer,d integer,s integer,st uuid)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+DECLARE n integer;
+BEGIN
+ IF NOT public.v4_can_arrange_seats(y,c) THEN RAISE EXCEPTION 'Chỉ GVCN hoặc quản trị được xếp chỗ'; END IF;
+ IF g IS NULL OR g NOT BETWEEN 1 AND 12 OR d IS NULL OR d<1 OR s IS NULL OR s NOT IN (1,2) THEN RAISE EXCEPTION 'Vị trí không hợp lệ'; END IF;
+ SELECT (desk_counts->>(g-1))::integer INTO n FROM public.v4_layouts WHERE school_year=y AND class_code=c FOR UPDATE;
+ IF n IS NULL OR d>n THEN RAISE EXCEPTION 'Chưa thiết lập bàn hợp lệ'; END IF;
+ IF st IS NOT NULL AND NOT public.v4_student_class(st,y,c) THEN RAISE EXCEPTION 'Học sinh không thuộc lớp'; END IF;
+ IF st IS NOT NULL THEN DELETE FROM public.v4_seats WHERE school_year=y AND class_code=c AND student_id=st; END IF;
+ DELETE FROM public.v4_seats WHERE school_year=y AND class_code=c AND group_no=g AND desk_no=d AND seat_no=s;
+ IF st IS NOT NULL THEN INSERT INTO public.v4_seats(school_year,class_code,group_no,desk_no,seat_no,student_id) VALUES(y,c,g,d,s,st); END IF;
+END $$;
+
+CREATE OR REPLACE FUNCTION public.v4_set_desks(y text,c text,g integer,n integer)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+DECLARE counts jsonb;
+BEGIN
+ IF NOT public.v4_can_arrange_seats(y,c) THEN RAISE EXCEPTION 'Chỉ GVCN hoặc quản trị được thêm/bớt bàn'; END IF;
+ INSERT INTO public.v4_layouts(school_year,class_code,updated_by) VALUES(y,c,auth.uid()) ON CONFLICT DO NOTHING;
+ SELECT desk_counts INTO counts FROM public.v4_layouts WHERE school_year=y AND class_code=c FOR UPDATE;
+ IF g IS NULL OR g NOT BETWEEN 1 AND jsonb_array_length(counts) OR n IS NULL OR n NOT BETWEEN 1 AND 20 THEN RAISE EXCEPTION 'Tổ hoặc số bàn không hợp lệ'; END IF;
+ DELETE FROM public.v4_seats WHERE school_year=y AND class_code=c AND group_no=g AND desk_no>n;
+ UPDATE public.v4_layouts SET desk_counts=jsonb_set(counts,ARRAY[(g-1)::text],to_jsonb(n)),is_confirmed=false,updated_at=now(),updated_by=auth.uid()
+ WHERE school_year=y AND class_code=c;
+END $$;
+
+CREATE OR REPLACE FUNCTION public.v4_confirm_layout(y text,c text)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+BEGIN
+ IF NOT public.v4_can_arrange_seats(y,c) THEN RAISE EXCEPTION 'Chỉ GVCN hoặc quản trị được chốt sơ đồ'; END IF;
+ UPDATE public.v4_layouts SET is_confirmed=true,updated_at=now(),updated_by=auth.uid()
+ WHERE school_year=y AND class_code=c;
+ IF NOT FOUND THEN RAISE EXCEPTION 'Chưa có sơ đồ để chốt'; END IF;
+END $$;
+
+CREATE OR REPLACE FUNCTION public.v4_layout_approval_guard() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+DECLARE total_students integer; total_seated integer; invalid_positions integer; needs_approval boolean;
+BEGIN
+ IF TG_OP='INSERT' THEN needs_approval=NEW.is_confirmed;
+ ELSE
+  IF row(NEW.school_year,NEW.class_code) IS DISTINCT FROM row(OLD.school_year,OLD.class_code) THEN
+   RAISE EXCEPTION 'Không được thay đổi năm học hoặc lớp của sơ đồ';
+  END IF;
+  IF NEW.desk_counts IS DISTINCT FROM OLD.desk_counts THEN NEW.is_confirmed=false; END IF;
+  needs_approval=NEW.is_confirmed AND NOT OLD.is_confirmed;
+ END IF;
+ IF needs_approval THEN
+  IF NOT public.v4_can_arrange_seats(NEW.school_year,NEW.class_code) THEN
+   RAISE EXCEPTION 'Chỉ GVCN hoặc quản trị được chốt sơ đồ';
+  END IF;
+  SELECT count(*) INTO total_students FROM public.v4_students
+   WHERE school_year=NEW.school_year AND class_code=NEW.class_code AND active;
+  SELECT count(*) INTO total_seated FROM public.v4_seats a JOIN public.v4_students s ON s.id=a.student_id
+   WHERE a.school_year=NEW.school_year AND a.class_code=NEW.class_code AND s.active;
+  SELECT count(*) INTO invalid_positions FROM public.v4_seats a
+   WHERE a.school_year=NEW.school_year AND a.class_code=NEW.class_code
+    AND (a.group_no<1 OR a.group_no>jsonb_array_length(NEW.desk_counts)
+     OR a.desk_no>coalesce((NEW.desk_counts->>(a.group_no-1))::integer,0));
+  IF total_students=0 OR total_seated<>total_students OR invalid_positions>0 THEN
+   RAISE EXCEPTION 'Phải xếp đủ học sinh vào các bàn hợp lệ trước khi chốt (%/% học sinh)',total_seated,total_students;
+  END IF;
+  NEW.confirmed_at=now(); NEW.confirmed_by=auth.uid();
+ ELSIF NOT NEW.is_confirmed THEN
+  NEW.confirmed_at=NULL; NEW.confirmed_by=NULL;
+ ELSE
+  NEW.confirmed_at=OLD.confirmed_at; NEW.confirmed_by=OLD.confirmed_by;
+ END IF;
+ NEW.updated_by=auth.uid(); NEW.updated_at=now();
+ RETURN NEW;
+END $$;
+
+DROP POLICY IF EXISTS v4_layout_manage ON public.v4_layouts;
+DROP POLICY IF EXISTS v4_layout_edit ON public.v4_layouts;
+DROP POLICY IF EXISTS v4_seat_add ON public.v4_seats;
+DROP POLICY IF EXISTS v4_seat_edit ON public.v4_seats;
+DROP POLICY IF EXISTS v4_seat_delete ON public.v4_seats;
+CREATE POLICY v4_layout_manage ON public.v4_layouts FOR INSERT TO authenticated WITH CHECK(public.v4_can_arrange_seats(school_year,class_code));
+CREATE POLICY v4_layout_edit ON public.v4_layouts FOR UPDATE TO authenticated USING(public.v4_can_arrange_seats(school_year,class_code)) WITH CHECK(public.v4_can_arrange_seats(school_year,class_code));
+CREATE POLICY v4_seat_add ON public.v4_seats FOR INSERT TO authenticated WITH CHECK(public.v4_can_arrange_seats(school_year,class_code));
+CREATE POLICY v4_seat_edit ON public.v4_seats FOR UPDATE TO authenticated USING(public.v4_can_arrange_seats(school_year,class_code)) WITH CHECK(public.v4_can_arrange_seats(school_year,class_code));
+CREATE POLICY v4_seat_delete ON public.v4_seats FOR DELETE TO authenticated USING(public.v4_can_arrange_seats(school_year,class_code));
+-- Record both the student placement and layout approval author.
+CREATE OR REPLACE FUNCTION public.v4_audit_seat_change() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
+DECLARE before_row jsonb;after_row jsonb;identity_row jsonb;
+BEGIN
+ IF TG_OP<>'INSERT' THEN before_row:=to_jsonb(OLD); END IF;
+ IF TG_OP<>'DELETE' THEN after_row:=to_jsonb(NEW); END IF;
+ identity_row:=coalesce(after_row,before_row);
+ INSERT INTO public.v4_audit(table_name,row_id,old_row,new_row,operation,changed_by)
+ VALUES(TG_TABLE_NAME,identity_row->>'school_year'||'|'||(identity_row->>'class_code'),before_row,after_row,TG_OP,auth.uid());
+ RETURN NULL;
+END $$;
+DROP TRIGGER IF EXISTS v4_audit_seats ON public.v4_seats;
+DROP TRIGGER IF EXISTS v4_audit_layouts ON public.v4_layouts;
+CREATE TRIGGER v4_audit_seats AFTER INSERT OR UPDATE OR DELETE ON public.v4_seats FOR EACH ROW EXECUTE FUNCTION public.v4_audit_seat_change();
+CREATE TRIGGER v4_audit_layouts AFTER INSERT OR UPDATE ON public.v4_layouts FOR EACH ROW EXECUTE FUNCTION public.v4_audit_seat_change();
+REVOKE ALL ON FUNCTION public.v4_audit_seat_change(),public.v4_layout_approval_guard() FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.v4_assign_seat(text,text,integer,integer,integer,uuid),public.v4_set_desks(text,text,integer,integer),public.v4_set_group_count(text,text,integer),public.v4_confirm_layout(text,text) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.v4_assign_seat(text,text,integer,integer,integer,uuid),public.v4_set_desks(text,text,integer,integer),public.v4_set_group_count(text,text,integer),public.v4_confirm_layout(text,text) TO authenticated;
+CREATE INDEX IF NOT EXISTS v4_observations_session_idx ON public.v4_observations(session_id);
+CREATE INDEX IF NOT EXISTS v4_students_year_class_active_idx ON public.v4_students(school_year,class_code,active);
+CREATE INDEX IF NOT EXISTS v4_lesson_reviews_year_class_date_idx ON public.v4_lesson_reviews(school_year,class_code,lesson_date);
+ALTER FUNCTION public.v4_admin() STABLE;
+ALTER FUNCTION public.v4_has_class(text,text) STABLE;
+ALTER FUNCTION public.v4_health_access(text,text) STABLE;
+ALTER FUNCTION public.v4_shared_teacher(uuid) STABLE;
+ALTER FUNCTION public.v4_actual_class_access(text,text) STABLE;
+ALTER FUNCTION public.v4_actual_homeroom(text,text) STABLE;
+ALTER FUNCTION public.v4_student_class(uuid,text,text) STABLE;
+ALTER FUNCTION public.v4_credentials_ready() STABLE;
+ALTER FUNCTION public.v4_school_today() STABLE;
+ALTER FUNCTION public.v4_check_lesson_writable(uuid) STABLE;
+ALTER FUNCTION public.v4_school_year_valid(text) IMMUTABLE;
+NOTIFY pgrst,'reload schema';
+
+-- SOURCE 35_v6_feedback_suggestions.sql
+-- Explicit request27/10: User feedback and suggestions for administrators.
+
+DO $$ BEGIN IF to_regprocedure('public.v4_can_arrange_seats(text,text)') IS NULL THEN RAISE EXCEPTION 'Cần cập nhật 34 trước 35'; END IF; END $$;
+
+CREATE TABLE IF NOT EXISTS public.v4_feedback(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+ created_at timestamptz NOT NULL DEFAULT now(),
+ user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+ sender_name text,
+ sender_role text,
+ contact_info text,
+ category text NOT NULL DEFAULT 'feature',
+ content text NOT NULL,
+ status text NOT NULL DEFAULT 'pending',
+ admin_notes text,
+ resolved_at timestamptz
+);
+
+ALTER TABLE public.v4_feedback ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.v4_feedback FROM PUBLIC, anon, authenticated;
+
+-- Function for submitting feedback: open to anon and authenticated
+CREATE OR REPLACE FUNCTION public.v4_submit_feedback(
+ p_sender_name text,
+ p_sender_role text,
+ p_contact_info text,
+ p_category text,
+ p_content text
+) RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
+DECLARE
+ v_id uuid;
+ v_content text;
+ v_sender_name text;
+ v_sender_role text;
+ v_contact text;
+ v_category text;
+ v_user_id uuid;
+BEGIN
+ v_content := trim(coalesce(p_content, ''));
+ IF length(v_content) < 5 THEN
+   RAISE EXCEPTION 'Nội dung góp ý phải có ít nhất 5 ký tự.';
+ END IF;
+ IF length(v_content) > 2000 THEN
+   RAISE EXCEPTION 'Nội dung góp ý tối đa 2000 ký tự.';
+ END IF;
+
+ v_sender_name := nullif(trim(coalesce(p_sender_name, '')), '');
+ v_sender_role := nullif(trim(coalesce(p_sender_role, '')), '');
+ v_contact     := nullif(trim(coalesce(p_contact_info, '')), '');
+ v_category    := coalesce(nullif(trim(coalesce(p_category, '')), ''), 'feature');
+ v_user_id     := auth.uid();
+
+ IF coalesce(length(v_sender_name),0)>80 OR coalesce(length(v_sender_role),0)>80
+    OR coalesce(length(v_contact),0)>100 THEN
+   RAISE EXCEPTION 'Tên/vai trò tối đa 80 ký tự, liên hệ tối đa 100 ký tự.';
+ END IF;
+ IF v_category NOT IN ('feature','timetable','bug','other') THEN
+   RAISE EXCEPTION 'Chủ đề góp ý không hợp lệ.';
+ END IF;
+ -- feedback_guard_v2: serialize check + insert for each authenticated user.
+ -- Anonymous callers share a bucket; never trust a caller-supplied name or IP.
+ PERFORM pg_advisory_xact_lock(hashtextextended('v4_feedback:'||coalesce(v_user_id::text,'anonymous'),0));
+ IF (SELECT count(*) FROM public.v4_feedback f
+     WHERE f.user_id IS NOT DISTINCT FROM v_user_id
+       AND f.created_at > clock_timestamp()-interval '10 minutes') >=
+       (CASE WHEN v_user_id IS NULL THEN 20 ELSE 5 END) THEN
+   RAISE EXCEPTION 'Đã đạt giới hạn góp ý trong 10 phút. Vui lòng thử lại sau.';
+ END IF;
+
+ INSERT INTO public.v4_feedback(user_id, sender_name, sender_role, contact_info, category, content, status)
+ VALUES (v_user_id, v_sender_name, v_sender_role, v_contact, v_category, v_content, 'pending')
+ RETURNING id INTO v_id;
+
+ RETURN v_id;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.v4_submit_feedback(text,text,text,text,text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.v4_submit_feedback(text,text,text,text,text) TO anon, authenticated;
+
+-- Function for reading feedback: ONLY ADMIN
+CREATE OR REPLACE FUNCTION public.v4_get_feedback(p_status text DEFAULT NULL)
+RETURNS TABLE (
+ id uuid,
+ created_at timestamptz,
+ user_id uuid,
+ sender_name text,
+ sender_role text,
+ contact_info text,
+ category text,
+ content text,
+ status text,
+ admin_notes text,
+ resolved_at timestamptz
+) LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=public,pg_temp AS $$
+BEGIN
+ IF NOT (public.v4_credentials_ready() AND public.v4_admin()) THEN
+   RAISE EXCEPTION 'Chỉ quản trị viên mới có quyền xem hộp thư góp ý.';
+ END IF;
+
+ RETURN QUERY
+ SELECT f.id, f.created_at, f.user_id, f.sender_name, f.sender_role, f.contact_info,
+        f.category, f.content, f.status, f.admin_notes, f.resolved_at
+ FROM public.v4_feedback f
+ WHERE (p_status IS NULL OR p_status = '' OR f.status = p_status)
+ ORDER BY f.created_at DESC;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.v4_get_feedback(text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.v4_get_feedback(text) TO authenticated;
+
+-- Function for updating feedback status: ONLY ADMIN
+CREATE OR REPLACE FUNCTION public.v4_update_feedback(
+ p_id uuid,
+ p_status text,
+ p_admin_notes text DEFAULT NULL
+) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
+BEGIN
+ IF NOT (public.v4_credentials_ready() AND public.v4_admin()) THEN
+   RAISE EXCEPTION 'Chỉ quản trị viên mới có quyền cập nhật góp ý.';
+ END IF;
+
+ IF p_status IS NULL OR p_status NOT IN ('pending','reviewed','resolved') THEN
+   RAISE EXCEPTION 'Trạng thái góp ý không hợp lệ.';
+ END IF;
+ IF length(p_admin_notes)>2000 THEN
+   RAISE EXCEPTION 'Ghi chú quản trị tối đa 2000 ký tự.';
+ END IF;
+
+ UPDATE public.v4_feedback
+ SET status = coalesce(nullif(trim(p_status), ''), status),
+     admin_notes = coalesce(p_admin_notes, admin_notes),
+     resolved_at = CASE WHEN p_status = 'resolved' THEN coalesce(resolved_at,now()) ELSE NULL END
+ WHERE id = p_id;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.v4_update_feedback(uuid,text,text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.v4_update_feedback(uuid,text,text) TO authenticated;
+
+CREATE INDEX IF NOT EXISTS v4_feedback_created_at_idx ON public.v4_feedback(created_at DESC);
+CREATE INDEX IF NOT EXISTS v4_feedback_status_idx ON public.v4_feedback(status);
+CREATE INDEX IF NOT EXISTS v4_feedback_sender_time_idx ON public.v4_feedback(user_id,created_at DESC);
+
 NOTIFY pgrst,'reload schema';
 
 NOTIFY pgrst, 'reload schema';

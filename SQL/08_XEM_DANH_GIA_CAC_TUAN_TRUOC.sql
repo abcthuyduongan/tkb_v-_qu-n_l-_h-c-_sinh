@@ -72,10 +72,10 @@ BEGIN
   WHERE s.school_year=y AND (cls IS NULL OR s.class_code=cls)
  ), lessons AS MATERIALIZED (
   SELECT s.id,s.school_year,s.class_code,s.lesson_date,s.period_no,s.subject,s.teacher_id,t.teacher_name,
-   coalesce(s.ended_at,CASE WHEN nullif(to_jsonb(s)->>'scheduled_end_at','')::timestamptz<=statement_timestamp()
-    THEN nullif(to_jsonb(s)->>'scheduled_end_at','')::timestamptz END) AS ended_at,
-   nullif(to_jsonb(s)->>'scheduled_end_at','')::timestamptz AS scheduled_end_at,
-   (s.ended_at IS NULL AND coalesce(nullif(to_jsonb(s)->>'scheduled_end_at','')::timestamptz<=statement_timestamp(),false)) AS is_auto_ended
+   coalesce(s.ended_at,CASE WHEN s.scheduled_end_at<=statement_timestamp()
+    THEN s.scheduled_end_at END) AS ended_at,
+   s.scheduled_end_at,
+   (s.ended_at IS NULL AND coalesce(s.scheduled_end_at<=statement_timestamp(),false)) AS is_auto_ended
   FROM public.v4_sessions s LEFT JOIN public.v4_teachers t ON t.user_id=s.teacher_id
   WHERE s.school_year=y AND (cls IS NULL OR s.class_code=cls) AND s.lesson_date BETWEEN d1 AND d2
  ), att AS MATERIALIZED (

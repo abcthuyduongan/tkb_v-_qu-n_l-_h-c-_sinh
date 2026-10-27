@@ -4,7 +4,8 @@
  // Accessing the parent API is protected by the browser's same-origin policy,
  // including the demo's inherited-origin about:srcdoc frame.
  try{if(window.parent!==window&&window.parent.TranPhuDialog){window.TranPhuDialog=window.parent.TranPhuDialog;return;}}catch(error){}
- let sequence=0,tail=Promise.resolve();
+ let sequence=0,tail=Promise.resolve(),deferredInstallPrompt=null;
+ window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();deferredInstallPrompt=event;});
  const node=(tag,className,text)=>{const e=document.createElement(tag);if(className)e.className=className;if(text!==undefined)e.textContent=String(text);return e;};
  const asOptions=value=>typeof value==='string'?{message:value}:{...(value||{})};
  const focusable=dialog=>[...dialog.querySelectorAll('button,input:not([type="hidden"]),select,textarea,a[href],[tabindex]')].filter(e=>!e.disabled&&e.tabIndex>=0&&e.getClientRects().length&&getComputedStyle(e).visibility!=='hidden');
@@ -75,6 +76,129 @@
   e.textContent=String(message);decorateToast(e,options.tone||inferTone(String(message)));e.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>e.classList.remove('show'),Number(options.duration)||(e.dataset.tone==='error'?6000:3900));
  }
  const watch=()=>{const e=document.getElementById('toast');if(!e)return;decorateToast(e);new MutationObserver(()=>{if(e.dataset.tpToastMessage!==e.textContent)decorateToast(e);}).observe(e,{childList:true,characterData:true,subtree:true});};
- window.TranPhuDialog=Object.freeze({confirm:options=>request('confirm',options),alert:options=>request('alert',options),prompt:options=>request('prompt',options),content,toast});
+ function escapeText(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+ function openFeedback(options={}){
+  let defaultName=options.name||'';
+  let defaultRole=options.role||'';
+  try{
+   const c=window.TkbAuth?.profile;
+   if(c?.teacher_name)defaultName=c.teacher_name;
+   if(c?.teacher_name&&!defaultRole)defaultRole='Giáo viên';
+   if(c?.subjects)defaultRole='GV '+(Array.isArray(c.subjects)?c.subjects.join(', '):c.subjects);
+  }catch(e){}
+  const form=node('form','tp-feedback-form');
+  form.innerHTML=`
+   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:10px">
+    <label style="display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600">Họ và tên
+     <input id="tpFbName" type="text" maxlength="80" placeholder="Tên của bạn (hoặc để trống)" value="${escapeText(defaultName)}" style="padding:8px 10px;border:1px solid var(--tp-border,#d3d7de);border-radius:8px;font:inherit">
+    </label>
+    <label style="display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600">Vai trò / Lớp
+     <input id="tpFbRole" type="text" maxlength="80" placeholder="VD: GV Toán, PHHS lớp 9A…" value="${escapeText(defaultRole)}" style="padding:8px 10px;border:1px solid var(--tp-border,#d3d7de);border-radius:8px;font:inherit">
+    </label>
+   </div>
+   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:10px">
+    <label style="display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600">Chủ đề
+     <select id="tpFbCategory" style="padding:8px 10px;border:1px solid var(--tp-border,#d3d7de);border-radius:8px;font:inherit;background:var(--tp-surface,#fff)">
+      <option value="feature">💡 Đề xuất tính năng mới</option>
+      <option value="timetable">📅 Góp ý Thời khóa biểu</option>
+      <option value="bug">🐛 Báo lỗi / Sự cố phần mềm</option>
+      <option value="other">💬 Ý kiến đóng góp khác</option>
+     </select>
+    </label>
+    <label style="display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600">Liên hệ lại (SĐT / Zalo / Email)
+     <input id="tpFbContact" type="text" maxlength="100" placeholder="Không bắt buộc" style="padding:8px 10px;border:1px solid var(--tp-border,#d3d7de);border-radius:8px;font:inherit">
+    </label>
+   </div>
+   <label style="display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;margin-bottom:12px">Nội dung góp ý <span style="color:#e02424">*</span>
+    <textarea id="tpFbContent" required rows="4" maxlength="2000" placeholder="Mời bạn nhập chi tiết ý kiến đóng góp cho ban quản trị…" style="padding:8px 10px;border:1px solid var(--tp-border,#d3d7de);border-radius:8px;font:inherit;resize:vertical"></textarea>
+   </label>
+   <div style="display:flex;justify-content:flex-end;gap:8px;align-items:center">
+    <button type="button" id="tpFbCancel" class="btn outline" style="min-height:38px;padding:6px 14px;border-radius:8px">Hủy</button>
+    <button type="submit" id="tpFbSubmit" class="btn primary" style="min-height:38px;padding:6px 16px;border-radius:8px;background:var(--tp-primary,#075cc2);color:#fff">Gửi góp ý</button>
+   </div>
+   <p id="tpFbMsg" class="note" style="margin:8px 0 0;color:#e02424;font-size:13px" hidden></p>
+  `;
+  const modal=content({
+   title:'Góp ý & Đề xuất cho Quản trị',
+   content:form,
+   description:'Ý kiến của bạn sẽ được chuyển trực tiếp tới Ban quản trị nhà trường để nâng cao chất lượng phần mềm.'
+  });
+  const cancelBtn=form.querySelector('#tpFbCancel');
+  if(cancelBtn)cancelBtn.onclick=()=>modal.close(false);
+  form.onsubmit=async(event)=>{
+   event.preventDefault();
+   const contentVal=(form.querySelector('#tpFbContent')?.value||'').trim();
+   const msg=form.querySelector('#tpFbMsg');
+   if(contentVal.length<5){
+    if(msg){msg.textContent='Vui lòng nhập nội dung góp ý từ 5 ký tự.';msg.hidden=false;}
+    return;
+   }
+   const nameVal=(form.querySelector('#tpFbName')?.value||'').trim();
+   const roleVal=(form.querySelector('#tpFbRole')?.value||'').trim();
+   const catVal=form.querySelector('#tpFbCategory')?.value||'feature';
+   const contactVal=(form.querySelector('#tpFbContact')?.value||'').trim();
+   const submitBtn=form.querySelector('#tpFbSubmit');
+   if(submitBtn){submitBtn.disabled=true;submitBtn.textContent='Đang gửi…';}
+   modal.setBusy(true);
+   try{
+    const cfg=window.TKB_CONFIG||{};
+    const sb=window.TkbAuth?.client||(window.supabase?.createClient&&cfg.supabaseUrl?window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey):null);
+    if(!sb)throw new Error('Không thể kết nối máy chủ.');
+    const {error}=await sb.rpc('v4_submit_feedback',{
+     p_sender_name:nameVal||null,
+     p_sender_role:roleVal||null,
+     p_contact_info:contactVal||null,
+     p_category:catVal,
+     p_content:contentVal
+    });
+    if(error)throw error;
+    modal.close(true);
+    toast('Cảm ơn bạn! Ý kiến đóng góp đã được chuyển tới Ban quản trị.',{tone:'success'});
+   }catch(err){
+    modal.setBusy(false);
+    if(submitBtn){submitBtn.disabled=false;submitBtn.textContent='Gửi góp ý';}
+    if(msg){msg.textContent='Chưa gửi được: '+(err.message||'Lỗi mạng');msg.hidden=false;}
+   }
+  };
+ }
+ function promptInstall(){
+  const isStandalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
+  if(isStandalone){
+   toast('Ứng dụng đã được cài đặt và đang chạy ở chế độ toàn màn hình.',{tone:'info'});
+   return;
+  }
+  if(deferredInstallPrompt){
+   deferredInstallPrompt.prompt();
+   deferredInstallPrompt.userChoice.then(choiceResult=>{
+    if(choiceResult&&choiceResult.outcome==='accepted'){
+     toast('Đang cài đặt ứng dụng ra màn hình chính...',{tone:'success'});
+    }
+    deferredInstallPrompt=null;
+   }).catch(()=>{});
+   return;
+  }
+  const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;
+  const wrap=node('div','tp-install-guide');
+  wrap.style.cssText='font-size:14px;line-height:1.6;color:var(--tp-text,#1f2937)';
+  if(isIOS){
+   wrap.innerHTML='<div style="text-align:center;margin-bottom:16px"><img src="/assets/apple-touch-icon.png" width="72" height="72" style="border-radius:16px;box-shadow:0 4px 12px rgba(0,0,0,0.15)" alt="Icon App"><h3 style="margin:10px 0 4px;font-size:16px;color:var(--tp-primary,#075cc2)">Cài đặt trên iPhone / iPad</h3><p style="color:var(--tp-muted,#6b7280);font-size:13px;margin:0">Mở toàn màn hình, truy cập tức thì như ứng dụng tải từ App Store</p></div><ol style="padding-left:20px;margin:0 0 16px"><li style="margin-bottom:10px">Nhấn vào nút <strong>Chia sẻ</strong> <span style="font-size:16px">⎋</span> <em>(biểu tượng hình vuông có mũi tên chỉ lên ở thanh đáy Safari)</em>.</li><li style="margin-bottom:10px">Cuộn xuống danh sách tùy chọn và nhấn <strong>"Thêm vào MH chính"</strong> <em>(Add to Home Screen)</em>.</li><li>Nhấn <strong>"Thêm"</strong> <em>(Add)</em> ở góc trên bên phải để tạo biểu tượng truy cập.</li></ol><div style="text-align:right"><button type="button" class="btn primary tp-dialog-btn-done" style="width:100%">Đã hiểu</button></div>';
+  } else {
+   wrap.innerHTML='<div style="text-align:center;margin-bottom:16px"><img src="/assets/icon-192.png" width="72" height="72" style="border-radius:16px;box-shadow:0 4px 12px rgba(0,0,0,0.15)" alt="Icon App"><h3 style="margin:10px 0 4px;font-size:16px;color:var(--tp-primary,#075cc2)">Cài đặt ứng dụng</h3><p style="color:var(--tp-muted,#6b7280);font-size:13px;margin:0">Tạo lối tắt ra màn hình chính điện thoại hoặc máy tính</p></div><ul style="padding-left:20px;margin:0 0 16px"><li style="margin-bottom:10px"><strong>Trên Android (Chrome/Cốc Cốc):</strong> Bấm menu <strong>3 chấm (⋮)</strong> ở góc trên → chọn <strong>"Cài đặt ứng dụng"</strong> hoặc <strong>"Thêm vào màn hình chính"</strong>.</li><li><strong>Trên Máy tính (Chrome/Edge):</strong> Bấm biểu tượng <strong>Cài đặt</strong> ở góc phải thanh địa chỉ (URL) hoặc menu 3 chấm → <strong>Ứng dụng</strong> → <strong>Cài đặt trang web này</strong>.</li></ul><div style="text-align:right"><button type="button" class="btn primary tp-dialog-btn-done" style="width:100%">Đã hiểu</button></div>';
+  }
+  const modal=content({
+   title:'Cài đặt biểu tượng Màn hình chính',
+   content:wrap,
+   description:'Truy cập thuận tiện với 1 lần chạm như ứng dụng di động'
+  });
+  const doneBtn=wrap.querySelector('.tp-dialog-btn-done');
+  if(doneBtn)doneBtn.onclick=()=>modal.close(true);
+ }
+ document.addEventListener('click',event=>{
+  const fbTrigger=event.target.closest('[data-action="feedback"], #openFeedbackBtn');
+  if(fbTrigger){event.preventDefault();openFeedback();return;}
+  const installTrigger=event.target.closest('[data-action="install-app"], #installAppBtn, #openInstallAppFooterBtn');
+  if(installTrigger){event.preventDefault();promptInstall();return;}
+ });
+ window.TranPhuDialog=Object.freeze({confirm:options=>request('confirm',options),alert:options=>request('alert',options),prompt:options=>request('prompt',options),content,toast,openFeedback,promptInstall});
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',watch,{once:true});else watch();
 })();
