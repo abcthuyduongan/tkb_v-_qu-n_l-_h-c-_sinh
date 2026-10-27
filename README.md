@@ -1,4 +1,4 @@
-# Trần Phú — 6.7.0/cache87 (27/10/2026)
+# Trần Phú — 6.7.0/cache88 (27/10/2026)
 
 Đã hoàn thiện tuyến nâng cấp SQL35, giới hạn gửi góp ý, tự điền danh tính và huy hiệu. Hướng dẫn chi tiết và lệnh PowerShell: CAP_NHAT_SQL_VA_DAY_GITHUB_CACHE87.md trong gói. Chưa chạy SQL/push/deploy thật.
 
@@ -67,3 +67,10 @@ Khi Netlify đã nối nhánh main, push sẽ kích hoạt deploy theo cấu hì
 Mã phát triển chính ở SITE_NETLIFY của dự án nâng cấp. Thư mục release chỉ là kết quả đóng gói; không sửa source từ clone phát hành.
 
 SQL13_GOP_Y_VA_GIOI_HAN_GUI.sql giữ dữ liệu và bổ sung bảo vệ góp ý;03 kiểm feedback_guard_v2_installed=true cùng ba RPC và quyền bảng.
+
+## Cache88 — chuyển Tổng quan vào thanh chức năng
+
+Theo yêu cầu người dùng: chuyển nút Tổng quan từ header sang mục đầu nav (biểu tượng nhà + nhãn); điện thoại/tablet ở đáy, desktop giữ sidebar. Bỏ handler trùng; giữ quyền và trang mở đầu. Không đổi SQL, không push/deploy. Kiểm giao diện sáu độ rộng và luồng Tổng quan PASS; bộ75 trước là bằng chứng cache87, không phải full cache88.
+
+## Cache89 — nhãn thanh chức năng
+Theo yêu cầu: Thời khóa biểu → TKB; Sắp chỗ ngồi → Xếp chỗ. Chỉ đổi nhãn nav, giữ chức năng/quyền. HTML mirror bằng byte; không đổi SQL, chưa push/deploy.

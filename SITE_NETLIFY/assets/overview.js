@@ -48,7 +48,7 @@
    else if(b.hasAttribute('data-overview-accounts'))$('openTeacherAccounts').click();
   }catch(error){root.querySelector('.overview-tasks').append(Object.assign(document.createElement('p'),{textContent:error.message,role:'alert'}));}};
  }
- $('openOverview').onclick=()=>window.TranPhuOpenOverview();$('refreshOverview').onclick=refresh;
+ $('refreshOverview').onclick=refresh;
  $('overviewScope').onclick=e=>{const b=e.target.closest('[data-scope]');if(b){scope=b.dataset.scope;refresh();}};
  $('overviewPeriod').onclick=e=>{const b=e.target.closest('[data-days]');if(b){days=Number(b.dataset.days);$('overviewPeriod').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));refresh();}};
  new MutationObserver(refresh).observe(document.body,{attributes:true,attributeFilter:['data-page']});
