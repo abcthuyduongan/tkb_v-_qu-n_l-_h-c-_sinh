@@ -30,3 +30,105 @@
  #appView .classroom-compact .mainTeacherDesk{grid-column:1/-1;display:flex;align-items:center;justify-content:center;gap:7px;min-width:0;width:min(360px,100%);margin:0 auto;padding:9px 12px;border:1px solid var(--tp-border);border-radius:8px;background:var(--tp-primary-soft);color:var(--tp-text);font-size:12px;line-height:1.5;box-shadow:none}
 }
 @media print{.classroom-group-tabs{display:none!important}}
+
+/* Start at the teacher's desk; preserve the teacher's position after each save. */
+@media screen {
+ #appView #classMap.classroom-compact{display:block}
+ #appView #classMap .classroom-group-tabs{margin-bottom:6px}
+ body[data-page=class] #appView>.toolbar{display:none}
+ #appView .classroom-viewport{height:clamp(250px,calc(100dvh - 480px),680px);overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-gutter:stable;overflow-anchor:none;border:1px solid var(--tp-border);border-radius:12px;background:var(--tp-surface-subtle,#f8fafc);padding:8px;scroll-padding:8px}
+ #appView .classroom-viewport:focus-visible{outline:3px solid var(--tp-primary);outline-offset:2px}
+ #appView .classroom-floor{display:grid;grid-template-columns:repeat(var(--classroom-group-count,1),minmax(0,1fr));align-items:end;gap:10px;min-height:100%}
+ #appView #classMap .group{padding:8px}
+ #appView .classroom-direction{margin:6px 0 0;text-align:center;font-size:12px;color:var(--tp-muted)}
+ #appView #classPage .lessonHead{padding:8px 12px;margin-bottom:8px;display:flex;flex-wrap:nowrap;align-items:center}
+ #appView #classPage .lessonHead>div:first-child{flex:1;min-width:0}
+ #appView #classPage .lesson-auto-status{flex:0 1 auto;margin:0;font-size:11px}
+ #appView #classPage .lessonHead b{font-size:17px}
+ #appView #attendanceStats{grid-template-columns:repeat(6,minmax(0,1fr));gap:4px;margin:8px 0}
+ #appView #attendanceStats .stat{padding:6px 3px;text-align:center;border-top-width:2px}
+ #appView #attendanceStats .stat b{font-size:17px}
+ #appView #attendanceStats .stat small{font-size:11px;line-height:1.4}
+ #appView #classPage .studentFinder{margin:8px 0}
+ #appView #classPage .studentFinder label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+ #appView .class-action-dock{position:sticky;bottom:calc(var(--tp-bottom-nav-height,0px) + 8px);z-index:12;display:grid;gap:8px;margin-top:10px;padding:10px;border:1px solid var(--tp-border);border-radius:12px;background:var(--tp-surface,#fff);box-shadow:0 -3px 14px #12335d12}
+ #appView #classMode{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:0}
+ #appView #classMode button{min-width:0;min-height:44px;margin:0;padding:8px;font-size:14px}
+ #appView .class-primary-actions{display:flex;gap:6px;min-width:0}
+ #appView .class-primary-actions .btn{min-width:44px;min-height:44px;padding:8px 10px;font-size:13px}
+ #appView .class-primary-actions #markRest{flex:1}
+ #appView .class-primary-actions #refreshClass{font-size:22px;line-height:1}
+ #appView #studentPanel{max-height:calc(100dvh - 290px - var(--tp-bottom-nav-height,0px));overflow-y:auto;overscroll-behavior:contain;overflow-anchor:none;scroll-padding:12px;background:#fff}
+ #appView #studentPanel .studentHeader{padding-right:0;margin-bottom:8px}
+ #appView #studentPanel .studentHeader h2{font-size:18px}
+ #appView #studentPanel .closePanel{display:inline-flex;float:right;min-width:44px;min-height:44px;padding:6px 8px;font-size:12px}
+ #appView .student-panel-heading{position:sticky;top:-18px;z-index:5;padding-top:8px;background:var(--tp-surface,#fff)}
+ #appView #studentPanel h3{font-size:14px;margin:12px 0 8px}
+ #appView .student-stepper{display:flex;align-items:center;justify-content:space-between;gap:6px;border-bottom:1px solid var(--tp-border);padding-bottom:8px}
+ #appView .student-stepper button{min-height:44px;padding:6px 10px;font-size:13px}
+ #appView .student-stepper span{font-size:12px;color:var(--tp-muted);white-space:nowrap}
+ #appView #studentPanel .choicegrid button{min-height:54px;font-size:14px;border-width:2px}
+ #appView #studentPanel [data-att=present]{background:#edf8f0;border-color:#83b795;color:#17643b}
+ #appView #studentPanel [data-att=absent]{background:#fff0f1;border-color:#d698a0;color:#9e2638}
+ #appView #studentPanel [data-att=late]{background:#fff8e5;border-color:#d7b55d;color:#79540c}
+ #appView #studentPanel [data-att=excused]{background:#f3f0fc;border-color:#b6a2d8;color:#63428e}
+ #appView #studentPanel [data-att].sel{outline:3px solid var(--tp-primary);outline-offset:2px}
+ #appView .behavior-categories{display:flex;gap:5px;padding:5px 0;background:var(--tp-surface,#fff)}
+ #appView .behavior-categories button{flex:1;min-width:0;min-height:44px;padding:6px 4px;font-size:12px;font-weight:600;border:1px solid var(--tp-border);border-radius:8px;background:var(--tp-surface,#fff);color:var(--tp-text)}
+ #appView .behavior-categories button[aria-pressed=true]{border-color:var(--tp-primary);background:var(--tp-primary-soft);color:var(--tp-primary)}
+ #appView #studentPanel .behaviors{gap:6px}
+ #appView #studentPanel .behaviors [hidden]{display:none}
+ #appView #studentPanel .behaviors button{min-height:48px;padding:8px;font-size:13px;line-height:1.4;border-left-width:4px}
+ #appView #studentPanel [data-category=positive]{border-left-color:#278355;background:#f0faf3}
+ #appView #studentPanel [data-category=concern]{border-left-color:#be8817;background:#fff9e9}
+ #appView #studentPanel [data-category=health]{border-left-color:#5476b3;background:#f1f6ff}
+ #appView #studentPanel .behaviors button.sel{outline:2px solid var(--tp-primary);outline-offset:1px;background:var(--tp-primary-soft)}
+ #appView #studentPanel #obsNote{min-height:66px}
+ #appView .observation-save{position:sticky;bottom:-1px;padding:8px 0;background:var(--tp-surface,#fff);border-top:1px solid var(--tp-border);z-index:3}
+ #appView #chosenBehaviorLabel{font-size:13px;line-height:1.4;margin:0 0 7px;color:var(--tp-muted)}
+}
+@media screen and (min-width:1101px){#appView .class-action-dock{width:calc(100% - 334px)}}
+@media screen and (min-width:701px) and (max-width:1100px){#appView .class-action-dock{width:calc(100% - 264px)}}
+@media screen and (max-width:700px){
+ #appView .classroom-viewport{height:clamp(230px,calc(100dvh - 540px),480px)}
+ #appView #attendanceStats .stat{padding:3px 2px;min-height:54px}
+ #appView #attendanceStats .stat b{font-size:15px}
+ #appView #attendanceStats .stat small{font-size:10px}
+ #appView .class-action-dock{padding:8px;gap:6px}
+ #appView .student-panel-heading{top:-12px;padding-top:6px}
+ #appView #studentBackdrop{display:none}
+ #appView #classPage{--student-sheet-height:min(56dvh,480px)}
+ #appView #classPage[data-class-mode=attendance]{--student-sheet-height:min(42dvh,360px)}
+ #appView #classPage:has(#studentPanel.open) :is(.lessonHead,#attendanceStats,.studentFinder,.classroom-direction){display:none}
+ #appView #classPage:has(#studentPanel.open) .classroom-viewport{height:max(160px,calc(100dvh - var(--student-sheet-height) - var(--tp-bottom-nav-height,0px) - 150px))}
+ #appView #classPage:has(#studentPanel.open) .class-action-dock{visibility:hidden;pointer-events:none}
+ #appView #studentPanel.open{bottom:var(--tp-bottom-nav-height,0px);height:var(--student-sheet-height);max-height:var(--student-sheet-height);padding:12px 14px;border:1px solid var(--tp-border);box-shadow:0 -8px 30px #12335d29}
+ #appView #studentPanel .closePanel{position:static;float:right;min-width:44px;min-height:44px;margin:0 0 6px 6px;padding:6px 8px}
+ #appView #studentPanel .studentHeader{clear:none;min-height:44px}
+ #appView #studentPanel .studentHeader .avatar{display:none}
+ #appView #studentPanel .studentHeader h2{font-size:17px}
+ #appView #studentPanel .studentHeader .muted{font-size:12px}
+ #appView #classPage .bottomClass{margin:8px 0}
+ #appView .class-primary-actions #focusClassFront{padding-inline:8px}
+}
+@media (prefers-reduced-motion:no-preference){
+ #appView #studentPanel.open{animation:student-panel-rise .16s ease-out}
+ @keyframes student-panel-rise{from{transform:translateY(18px)}to{transform:translateY(0)}}
+}
+@media print{.class-action-dock,.classroom-direction,.student-stepper{display:none!important}.classroom-viewport,.classroom-floor{height:auto!important;overflow:visible!important;display:contents!important}}
+
+/* Seat editing uses the same front-at-bottom view as assessment. */
+@media screen{
+ #appView #seatingEditor.classroom-compact{display:block}
+ #appView #seatingEditor .seating-view-tools{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:4px 0 10px}
+ #appView .seating-view-tools p{margin:0;font-size:13px;line-height:1.5;color:var(--tp-muted);flex:1;min-width:0}
+ #appView .seating-view-tools button{flex:none;min-height:44px;padding:8px 12px}
+ #appView #seatingViewport{height:clamp(280px,calc(100dvh - 400px),680px)}
+ #appView #seatingFloor{align-items:end}
+ #appView #seatingViewport .group{padding:8px}
+}
+@media screen and (max-width:700px){
+ #appView #seatingViewport{height:clamp(250px,calc(100dvh - 510px),480px)}
+ #appView .seating-view-tools button{font-size:13px;padding-inline:10px}
+}
+@media print{.seating-view-tools{display:none!important}}

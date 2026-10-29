@@ -1,0 +1,42 @@
+@media screen{
+ .rotation-settings{margin:12px 0;border:1px solid var(--tp-border);border-radius:12px;background:var(--tp-surface,#fff)}
+ .rotation-settings>summary{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:48px;padding:12px;cursor:pointer;font-size:14px;font-weight:600}
+ .rotation-settings>summary small{font-size:12px;color:var(--tp-muted);font-weight:400}
+ .rotation-settings[open]>summary{border-bottom:1px solid var(--tp-border)}
+ #rotationSettings{padding:12px}
+ .rotation-intro,.rotation-reference-note,.rotation-approval,.rotation-draft{font-size:13px;line-height:1.6;margin:0 0 12px;color:var(--tp-muted)}
+ .rotation-enable{display:flex!important;align-items:center;gap:10px;min-height:48px;padding:10px;border-radius:8px;background:var(--tp-primary-soft);font-weight:600}
+ .rotation-enable input,.rotation-group-check input{width:20px!important;min-height:20px!important;height:20px;margin:0;flex:0 0 20px;accent-color:var(--tp-primary)}
+ .rotation-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:12px 0}
+ .rotation-fields>label,.rotation-preview-controls>label{display:grid;gap:5px;margin:0;font-size:13px}
+ .rotation-group-head,.rotation-group-row{display:grid;grid-template-columns:70px 72px minmax(0,1fr);gap:10px;align-items:center}
+ .rotation-group-head{font-size:12px;color:var(--tp-muted);padding:8px 0}
+ .rotation-group-row{border-top:1px solid var(--tp-border);padding:8px 0;font-size:14px}
+ .rotation-group-row b small{display:block;font-size:12px;font-weight:400;color:var(--tp-muted)}
+ .rotation-group-check{display:flex!important;align-items:center;justify-content:center;min-height:44px;margin:0!important;cursor:pointer}
+ .rotation-group-row .rotation-vertical{display:block;margin:0;min-width:0}
+ .rotation-group-row select{min-height:44px;width:100%;min-width:0;font-size:14px}
+ .rotation-reference-note{margin-top:12px}
+ .rotation-preview-controls{display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin:12px 0}
+ .rotation-preview-controls>label{flex:1 1 180px}
+ .rotation-preview-controls button{min-height:44px;padding:8px 10px;flex:0 0 auto}
+ .rotation-preview{border-radius:10px;background:var(--tp-surface-subtle,#f8fafc);padding:12px}
+ .rotation-preview:empty{display:none}
+ .rotation-preview h4{font-size:14px;margin:0 0 8px}
+ .rotation-preview-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}
+ .rotation-preview article{display:grid;gap:5px;padding:10px;border:1px solid var(--tp-border);border-radius:8px;background:#fff;min-width:0}
+ .rotation-preview article strong{font-size:14px}.rotation-preview article span,.rotation-preview article p{font-size:12px;color:var(--tp-muted);margin:0;overflow-wrap:anywhere}
+ .rotation-save{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px}
+ .rotation-save span{font-size:12px;color:var(--tp-muted);flex:1 1 180px}
+ .rotation-message{font-size:14px;line-height:1.5;margin:10px 0}
+ .rotation-message:empty{display:none}
+ .rotation-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+ .rotation-class-notice,.seating-reference-label{font-size:12px;line-height:1.6;padding:8px 10px;border-radius:8px;background:var(--tp-primary-soft);color:var(--tp-muted);margin:8px 0}
+ .rotation-class-notice[hidden]{display:none}
+}
+@media screen and (max-width:700px){
+ #appView #classPage:has(#studentPanel.open) .rotation-class-notice{display:none}
+ #appView #classPage:not(:has(#studentPanel.open)):has(.rotation-class-notice:not([hidden])) .classroom-viewport{height:clamp(230px,calc(100dvh - 580px),480px)}
+}
+@media screen and (max-width:480px){.rotation-fields{grid-template-columns:1fr}.rotation-group-head,.rotation-group-row{grid-template-columns:55px 60px minmax(0,1fr);gap:6px}.rotation-group-row select{font-size:13px}.rotation-preview-list{grid-template-columns:1fr}.rotation-preview-controls>label{flex-basis:100%}.rotation-preview-controls>button{flex:1}}
+@media print{.rotation-settings,.rotation-class-notice,.seating-reference-label{display:none!important}}

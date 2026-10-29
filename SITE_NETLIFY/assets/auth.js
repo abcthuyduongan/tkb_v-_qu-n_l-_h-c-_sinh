@@ -3,8 +3,9 @@
  const cfg=root.TKB_CONFIG;if(!cfg||!root.supabase)return;
  let parentAuth=null;
  try{if(root.parent!==root&&root.parent.location.origin===root.location.origin&&root.parent.TKB_CONFIG?.supabaseUrl===cfg.supabaseUrl&&root.parent.TKB_CONFIG?.supabaseAnonKey===cfg.supabaseAnonKey)parentAuth=root.parent.TkbAuth||null;}catch{/* A different origin must manage its own session. */}
- const client=parentAuth?.client||root.supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+ const client=parentAuth?.client||root.supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true},global:{fetch:(...args)=>(root.TranPhuOffline?.timedFetch||root.fetch.bind(root))(...args)}});
  const auth={client,profile:null,session:null,status:'checking',error:null};root.TkbAuth=auth;
+ auth.cachedUser=()=>{try{const raw=JSON.parse(localStorage.getItem(client.auth.storageKey)||'null'),user=raw?.user;if(!user?.id||!raw.access_token)return null;return {id:user.id,email:user.email,app_metadata:{force_password_change:!!user.app_metadata?.force_password_change}};}catch{return null;}};
  const cleanups=[];
  auth.subscribe=callback=>{const result=client.auth.onAuthStateChange(callback);const subscription=result.data?.subscription;if(subscription)cleanups.push(()=>subscription.unsubscribe());return result;};
  root.addEventListener('pagehide',event=>{if(!event.persisted)for(const cleanup of cleanups.splice(0))cleanup();});

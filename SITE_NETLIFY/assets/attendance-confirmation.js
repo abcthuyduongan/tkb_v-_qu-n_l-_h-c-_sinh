@@ -25,6 +25,6 @@
  document.addEventListener('tranphu:lesson-render',paint);
  document.addEventListener('tranphu:lesson-status',e=>{
   paint();const c=context(),key=c?.session?.id+'|'+e.detail?.state;
-  if(!c?.demo&&e.detail?.state==='elapsed'&&key!==refreshKey){refreshKey=key;window.TranPhuReloadAttendance?.().catch(()=>{$('attendanceConfirmationText').textContent='Chưa cập nhật được trạng thái điểm danh. Bấm Làm mới để thử lại.';});}
+  if(!c?.demo&&e.detail?.state==='elapsed'&&key!==refreshKey){refreshKey=key;window.TranPhuReloadAttendance?.().catch(()=>{});}
  });
 })();

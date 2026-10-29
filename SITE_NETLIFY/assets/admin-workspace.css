@@ -1,0 +1,49 @@
+@media screen{
+ .admin-workspace-nav{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0}
+ .admin-workspace-nav>*{flex:1 1 150px;min-height:44px;text-align:center;text-decoration:none}
+ #adminPage .admin-workspace-nav button.on{background:var(--tp-primary,#075cc2);color:white;border-color:var(--tp-primary,#075cc2)}
+ .admin-workspace-home h2{margin:0}#adminPage>.box{margin-bottom:16px}#adminCurrentVersion{padding:16px;border:1px solid var(--tp-border,#dfe8f4);border-radius:12px;background:var(--tp-primary-soft,#eef5ff);line-height:1.6}
+ .admin-work-items{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px;margin-bottom:16px}
+ .admin-work-items article{display:flex;flex-direction:column;justify-content:space-between;border:1px solid var(--tp-border,#dfe8f4);border-radius:12px;padding:14px;gap:12px}
+ .admin-work-items p{margin:0;line-height:1.5}.admin-work-items button{align-self:flex-start}
+ .admin-group-actions{display:flex;flex-wrap:wrap;gap:10px}.admin-group-actions>button{flex:1 1 180px;min-height:48px}
+ [data-workspace-group][hidden]{display:none!important}.admin-back{margin-bottom:12px}.admin-back[hidden]{display:none}
+ #adminPage .adminPanels{display:block}#adminPage .adminPanel{margin-bottom:16px}
+ #adminPage .tableScroller{max-height:480px;overflow:auto}#adminPage table thead th,.admin-page .table-wrap thead th{position:sticky;top:0;background:var(--tp-surface,#fff);z-index:1}
+ .admin-publish-guide h1{font-size:24px;margin:0}.admin-publish-guide p{line-height:1.6;color:var(--tp-muted,#526681)}
+ .admin-version-search{display:flex;flex-direction:column;gap:8px;margin:12px 0}.admin-version-search input{min-height:44px;padding:10px;border:1px solid var(--tp-border,#dfe8f4);border-radius:8px}
+ .version-item[hidden]{display:none!important}.admin-workspace-nav :focus-visible{outline:2px solid #075cc2;outline-offset:3px}
+}
+@media screen and (max-width:700px){.admin-workspace-nav>*{flex-basis:calc(50% - 8px);font-size:13px;padding:10px 6px}.admin-workspace-home{padding:16px}.admin-group-actions>button{flex-basis:100%}.admin-page .version-actions{flex-wrap:wrap}.admin-publish-guide h1{font-size:20px}}
+@media print{.admin-workspace-home,.admin-back,.admin-publish-guide,.admin-version-search{display:none!important}}
+
+/* Controls shrink within their own cell; action groups wrap before collision. */
+@media screen{
+ :is(#adminPage,.admin-page,.teacher-account-dialog) :is(.gridTwo,.form-grid,.admin-grid){grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+ :is(#adminPage,.admin-page,.teacher-account-dialog) :is(label,.field,.admin-card,.adminPanelContent,.version-info){min-width:0;max-width:100%;box-sizing:border-box}
+ :is(#adminPage,.admin-page,.teacher-account-dialog) :is(input,select,textarea){min-width:0;max-width:100%;box-sizing:border-box}
+ :is(#adminPage,.admin-page,.teacher-account-dialog) label>:is(input:not([type="checkbox"]):not([type="radio"]),select,textarea){width:100%;display:block}
+ :is(#adminPage,.admin-page,.teacher-account-dialog) :is(.actions,.syncActions,.version-actions,.section-row,.plan-actions){flex-wrap:wrap;gap:10px;align-items:stretch}
+ :is(#adminPage,.admin-page,.teacher-account-dialog) :is(.actions,.syncActions,.version-actions,.plan-actions)>:is(button,a,.btn){flex:0 1 auto;max-width:100%;white-space:normal;overflow-wrap:anywhere;height:auto;min-height:44px;line-height:1.4;padding:10px 14px}
+ #periodTimes>div{padding:12px 0;border-bottom:1px solid var(--tp-border,#dfe8f4)}#periodTimes>div>b{display:block;margin-bottom:8px}
+ #adminPage .adminPanelContent>button{margin-top:12px}#adminPage .adminPanelContent>label{display:block;margin:12px 0}
+ .admin-page .section-row>div{flex:1 1 220px;min-width:0}.admin-page .section-row>button{max-width:100%}
+}
+@media screen and (max-width:700px){
+ :is(#adminPage,.admin-page,.teacher-account-dialog) :is(.gridTwo,.form-grid,.admin-grid){grid-template-columns:minmax(0,1fr)}
+ :is(#adminPage,.admin-page,.teacher-account-dialog) :is(.actions,.syncActions,.version-actions)>:is(button,a,.btn){flex:1 1 130px}
+ .admin-page .section-row>div{flex-basis:100%}
+}
+
+@media screen and (max-width:1179px){
+ html:has(#appView:not([hidden])){scroll-padding-bottom:calc(var(--tp-bottom-nav-height,85px) + 24px);scroll-padding-top:16px}
+ #adminPage :is(input,select,textarea,button,summary),#adminPage .adminPanel{scroll-margin-bottom:calc(var(--tp-bottom-nav-height,85px) + 24px);scroll-margin-top:16px}
+ #adminPage{padding-bottom:calc(var(--tp-bottom-nav-height,85px) + 24px)}
+}
+
+@media screen{
+ #adminPage .feedback-toolbar{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:end;gap:10px;margin-bottom:12px;width:100%}
+ #adminPage .feedback-toolbar>label{display:flex;flex-direction:column;gap:6px;min-width:0}
+ #adminPage .feedback-toolbar #adminFeedbackFilter{margin:0!important;width:100%;height:44px;min-height:44px;box-sizing:border-box;padding:8px;font-size:16px}
+ #adminPage .feedback-toolbar #refreshAdminFeedback{margin:0;width:100%;height:44px;min-height:44px;padding:8px;box-sizing:border-box;align-self:end}
+}

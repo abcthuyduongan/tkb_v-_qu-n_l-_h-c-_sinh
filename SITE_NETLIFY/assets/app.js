@@ -11,6 +11,7 @@
   ];
   const el = id => document.getElementById(id);
   const state = {mode:'class', versions:[], version:null, entries:[], assignments:[], calendars:[], classes:[], teachers:[], selected:null, fromCache:false};
+  let followingCurrent=!new URL(location.href).searchParams.has('version')||new URL(location.href).searchParams.get('follow')==='current';
   let snapshot=null,pendingManifest=null,deferredKey=null,syncBusy=false,checkBusy=false,display='subject',week=1,weekIsManual=false,reportSubject='',plans=[],mapped=[],mappingIssues=[];
 
   const confirmPortal=async(message,options={})=>window.TranPhuDialog?window.TranPhuDialog.confirm({...options,message}):window.confirm(message);
@@ -54,14 +55,14 @@
   async function loadData(){
     setSync('Đang mở dữ liệu trên máy…');
     try{snapshot=await TkbStore.get();}catch(e){setSync('Không mở được bộ nhớ thiết bị: '+e.message,'warn');}
-    if(snapshot){applySnapshot(snapshot);const requested=new URL(location.href).searchParams.get('version'),target=requested?state.versions.find(v=>v.id===requested):currentVersion(state.versions);if(target&&target.id!==state.version.id&&navigator.onLine)try{await install(await TkbStore.manifest(),target);}catch(e){setSync(e.message+' Bản đang xem có thể đã cũ.','warn');}checkUpdates(false);return;}
+    if(snapshot){applySnapshot(snapshot);const requested=new URL(location.href).searchParams.get('version'),target=requested?state.versions.find(v=>v.id===requested):currentVersion(state.versions);if(target&&target.id!==state.version.id&&navigator.onLine)try{await install(await TkbStore.manifest(),target,{quiet:true});}catch(e){setSync(e.message+' Bản đang xem có thể đã cũ.','warn');}checkUpdates(false);return;}
     try{const m=await TkbStore.manifest();if(!m.versions.length){el('emptyState').hidden=false;setSync('Chưa có TKB công bố');return;}
-      const q=new URL(location.href).searchParams,v=m.versions.find(v=>v.id===q.get('version'))||currentVersion(m.versions);if(!v)throw Error('Chưa có TKB được quản trị xác nhận áp dụng.');await install(m,v);
+      const q=new URL(location.href).searchParams,v=m.versions.find(v=>v.id===q.get('version'))||currentVersion(m.versions);if(!v)throw Error('Chưa có TKB được quản trị xác nhận áp dụng.');await install(m,v,{quiet:true});
     }catch(e){setSync('Chưa có bản lưu. Cần mạng để tải lần đầu. '+e.message,'warn');el('emptyState').hidden=false;}
   }
 
   async function loadVersion(version,updateUrl=true){
-    if(!version||syncBusy)return;
+    if(!version||syncBusy)return;followingCurrent=!!version.is_active;
     if(snapshot?.version.id===version.id){buildVersionSelect();return;}
     if(!await confirmPortal('Khi tải thành công, bản TKB đang lưu trên thiết bị sẽ được thay thế.',{title:'Chuyển bản thời khóa biểu?',confirmLabel:'Tải bản TKB'})){buildVersionSelect();return;}
     try{const m=await TkbStore.manifest();await install(m,version);}catch(e){setSync('Chưa thay dữ liệu: '+e.message,'warn');buildVersionSelect();}
@@ -74,18 +75,18 @@
     setSync(navigator.onLine?'Đang kiểm tra bản mới…':'Ngoại tuyến · Chưa kiểm tra bản mới','ok');
     if(!value.manifest.ready)toast('TKB đã sẵn sàng. Quản trị cần cài bảng PPCT để dùng bài học và PDF.');
   }
-  async function install(m,v){
+  async function install(m,v,{quiet=false}={}){
     if(syncBusy)return;syncBusy=true;el('acceptUpdate').disabled=true;el('versionSelect').disabled=true;
     setSync('Đang tải bản mới; bản cũ vẫn được giữ…');
     try{const value=await TkbStore.download(m,v.id);applySnapshot(value);showVersionStatus(value.manifest);pendingManifest=null;el('updateNotice').hidden=true;
-      const u=new URL(location.href);u.searchParams.set('version',v.id);(location.protocol==='about:'?null:history.replaceState(null,'',u));toast('Đã chuyển sang bản mới và thay bản cũ trên máy.');
+      const u=new URL(location.href);u.searchParams.set('version',v.id);if(followingCurrent)u.searchParams.set('follow','current');else u.searchParams.delete('follow');(location.protocol==='about:'?null:history.replaceState(null,'',u));if(!quiet)toast('Đã chuyển sang bản mới và thay bản cũ trên máy.');
       navigator.storage?.persist?.().catch(()=>{});
     }finally{syncBusy=false;el('acceptUpdate').disabled=false;el('versionSelect').disabled=false;}
   }
   async function checkUpdates(manual){
     if(syncBusy||checkBusy)return;checkBusy=true;
-    try{const m=await TkbStore.manifest();if(!snapshot){const v=currentVersion(m.versions);if(v)await install(m,v);else setSync('Chưa có TKB được quản trị xác nhận áp dụng');return;}
-      if(m.key!==snapshot.manifest.key){const live=currentVersion(m.versions);if(!manual&&snapshot.version.is_active&&live&&live.id!==state.version.id){await install(m,live);return;}pendingManifest=m;el('updateNotice').hidden=!manual&&deferredKey===m.key;const newer=!!live&&live.id!==state.version.id||m.versions.find(v=>v.id===state.version.id)?.updated_at!==state.version.updated_at;const message=newer?'TKB đang áp dụng đã được quản trị cập nhật. Bạn có cập nhật không?':'Đã có dữ liệu PPCT/PDF mới. Bạn có cập nhật không?';el('updateNotice').querySelector('strong').textContent=message;setSync(newer?'TKB đang áp dụng đã thay đổi':'Đã có dữ liệu mới','warn');}
+    try{const m=await TkbStore.manifest();if(!snapshot){const v=currentVersion(m.versions);if(v)await install(m,v,{quiet:!manual});else setSync('Chưa có TKB được quản trị xác nhận áp dụng');return;}
+      if(m.key!==snapshot.manifest.key){const live=currentVersion(m.versions);if(!manual&&!weekIsManual&&live&&(followingCurrent||state.version.id===live.id)){await install(m,live,{quiet:true});return;}pendingManifest=m;el('updateNotice').hidden=!manual&&deferredKey===m.key;const newer=!!live&&live.id!==state.version.id||m.versions.find(v=>v.id===state.version.id)?.updated_at!==state.version.updated_at;const message=newer?'TKB đang áp dụng đã được quản trị cập nhật. Bạn có cập nhật không?':'Đã có dữ liệu PPCT/PDF mới. Bạn có cập nhật không?';el('updateNotice').querySelector('strong').textContent=message;setSync(newer?'TKB đang áp dụng đã thay đổi':'Đã có dữ liệu mới','warn');}
       else{pendingManifest=null;el('updateNotice').hidden=true;showVersionStatus(m);if(manual)toast(currentVersion(m.versions)?.id===state.version.id?'Đang xem TKB hiện hành.':'Bạn đang xem bản lưu; có thể chuyển về TKB hiện hành.');}
     }catch(e){if(manual)toast('Không kiểm tra được cập nhật. Tiếp tục dùng dữ liệu đã lưu.');setSync(navigator.onLine?'Chưa kiểm tra được bản mới':'Ngoại tuyến · Chưa kiểm tra bản mới','warn');}
     finally{checkBusy=false;}

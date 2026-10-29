@@ -2,9 +2,11 @@
 (()=>{'use strict';
  const $=id=>document.getElementById(id),escape=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const context=()=>window.TranPhuReportsContext?.();
+ const classVisible=()=>window.TranPhuReportScope?.wantsClass?.()!==false;
  const today=()=>{const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());return ['year','month','day'].map(k=>parts.find(p=>p.type===k).value).join('-');};
  const day=s=>new Date(s+'T12:00:00Z'),iso=d=>d.toISOString().slice(0,10),label={week:'Tuần',month:'Tháng',semester:'Học kỳ',custom:'Khoảng ngày'};
- let result=null,stamp='',busy=false,exporting=false,exportJob=null,rangeRevision=0,requestRevision=0,queuedMake=false,schoolMode=false;
+ let result=null,stamp='',busy=false,exporting=false,exportJob=null,rangeRevision=0,requestRevision=0,queuedMake=false,schoolMode=false,renderPending=false;
+ const reportMemories=new Map();let reportMemoryKey='';const memoryKey=c=>[c.userId,c.demo,c.year,schoolMode].join('|');function preserve(){if(reportMemoryKey&&$('reportFrom').value&&$('reportTo').value)reportMemories.set(reportMemoryKey,Object.fromEntries(['reportClass','reportRange','reportAnchor','reportMonth','reportTerm','reportFrom','reportTo'].map(id=>[id,$(id).value])));}
  function reportControls(){let row=$('reportControls');if(!row){row=document.createElement('div');row.id='reportControls';row.className='report-control-row';$('progressPage').querySelector('.report-toolbar').after(row);}return row;}
  function setupAudience(c){
   let box=$('reportAudience');if(!box){box=document.createElement('div');box.id='reportAudience';box.className='report-audience';reportControls().append(box);}
@@ -17,7 +19,7 @@
  const category=c=>c==='positive'?'Tích cực':c==='health'?'Sức khỏe':'Cần hỗ trợ';
  function notify(text){const toast=$('toast');toast.textContent=text;toast.classList.add('show');setTimeout(()=>{if(toast.textContent===text)toast.classList.remove('show');},4000);}
  function scope(){const c=context();return {c,homeroom:c.homeroomClasses.includes($('reportClass').value),admin:c.admin||(c.schoolViewer&&schoolMode),school:c.schoolViewer&&schoolMode};}
- function invalidate(){$('parentReport').disabled=true;$('reportResult').setAttribute('aria-busy','false');exportJob?.cancel();result=null;requestRevision++;$('exportReport').disabled=true;$('exportWord').disabled=true;$('printReport').disabled=true;$('reportResult').textContent='';}
+ function invalidate(){$('parentReport').disabled=true;$('reportResult').setAttribute('aria-busy','false');exportJob?.cancel();result=null;renderPending=false;requestRevision++;$('exportReport').disabled=true;$('exportWord').disabled=true;$('printReport').disabled=true;$('reportResult').textContent='';}
  function studentOptions(students){const selected=$('reportStudent').value;$('reportStudent').innerHTML='<option value="">Tất cả học sinh</option>'+students.map(s=>`<option value="${escape(s.id)}">${escape(s.full_name)} · ${escape(s.student_code)}</option>`).join('');if(students.some(s=>s.id===selected))$('reportStudent').value=selected;}
  const monday=value=>{const d=day(value);d.setUTCDate(d.getUTCDate()-((d.getUTCDay()+6)%7));return iso(d);};
  const addDays=(value,n)=>{const d=day(value);d.setUTCDate(d.getUTCDate()+n);return iso(d);};
@@ -85,13 +87,13 @@
   }
  }
  function open(){
-  const c=context();if(!c)return;
+  const c=context();if(!c||!classVisible())return;
   setupAudience(c);
-  const key=[c.demo,c.admin,c.schoolViewer,schoolMode,c.year,c.classCode,c.homeroomClasses.join(','),c.classes.join(','),today()].join('|');
-  if(key===stamp)return;stamp=key;invalidate();
+  const key=[c.userId,c.demo,c.admin,c.schoolViewer,schoolMode,c.year,c.classCode,c.homeroomClasses.join(','),c.classes.join(','),today()].join('|');
+  if(key===stamp){if(renderPending&&result){renderPending=false;render();}return;}stamp=key;invalidate();
   $('reportYear').value=c.year;const reportClasses=schoolMode?c.schoolClasses:c.classes;$('reportClass').innerHTML=(scope().admin?'<option value="">Toàn trường</option>':'')+reportClasses.map(cls=>`<option value="${escape(cls)}">Lớp ${escape(cls)}</option>`).join('');
   const wanted=c.homeroomClasses[0]||c.classCode;$('reportClass').value=schoolMode?'':reportClasses.includes(wanted)?wanted:c.admin?'':reportClasses[0]||'';if(!scope().admin&&!reportClasses.length)$('reportClass').innerHTML='<option value="">Chưa có lớp được phân công</option>';$('reportClass').disabled=!scope().admin&&!reportClasses.length;
-  $('reportAnchor').value=today();$('reportMonth').value=today().slice(0,7);$('reportRange').value='week';updateScope();$('makeReport').disabled=!scope().admin&&!$('reportClass').value;setRange().then(()=>{if(!noClass()&&!scope().admin&&!scope().homeroom)make();});
+  reportMemoryKey=memoryKey(c);const saved=reportMemories.get(reportMemoryKey);$('reportAnchor').value=saved?.reportAnchor||today();$('reportMonth').value=saved?.reportMonth||today().slice(0,7);$('reportRange').value=saved?.reportRange||'week';if(saved){if([...$('reportClass').options].some(o=>o.value===saved.reportClass))$('reportClass').value=saved.reportClass;for(const id of ['reportTerm','reportFrom','reportTo'])if(saved[id])$(id).value=saved[id];}updateScope();$('makeReport').disabled=!scope().admin&&!$('reportClass').value;setRange().then(()=>{if(!noClass()&&!scope().admin&&!scope().homeroom)make();});
  }
  function demoReport(c,from,to){
   const cls=$('reportClass').value,students=c.students.filter(s=>!cls||s.class_code===cls),sessions=c.session&&c.session.lesson_date>=from&&c.session.lesson_date<=to?[{...c.session,class_code:c.classCode,teacher_name:c.profile?.teacher_name}]:[];
@@ -104,8 +106,9 @@
  function render(){
   if(!result)return;const selected=$('reportStudent').value,data=result.data,students=data.students.filter(s=>!selected||s.id===selected),observations=data.observations.filter(o=>!selected||o.student_id===selected),attendance=(data.attendance||[]).filter(a=>!selected||a.student_id===selected),sessions=scopedSessions(data,selected),aggregateAllowed=data.permissions?.aggregate??(scope().admin||scope().homeroom);
   const summary=`<p class="report-period">${escape(result.classLabel)} · ${escape(result.periodLabel)} · ${escape(result.from)} → ${escape(result.to)}</p>`;
-  $('reportResult').innerHTML=summary+'<div id="reportDashboardMount"></div><div id="classReviewMount"></div>';
+  $('reportResult').innerHTML=summary+'<div id="reportDashboardMount"></div><div id="homeroomStudentMount"></div><div id="classReviewMount"></div>';
   window.TranPhuReportDashboard?.mount($('reportDashboardMount'),{...data,students,sessions,observations,attendance,completion:selected?null:data.completion,permissions:{...data.permissions,aggregate:aggregateAllowed,health:data.permissions?.health===true||cDemoHealth()}},{onClass:scope().admin?async cls=>{$('reportClass').value=cls;updateScope();await make();}:null});
+  const studentMount=$('homeroomStudentMount');if(scope().homeroom&&!scope().school&&!scope().c.admin)window.TranPhuHomeroomEvidence?.mount(studentMount,{...data,students,sessions,observations,attendance,teacherNames:context()?.teacherNames},{onStudent:id=>{$('reportStudent').value=id;render();}});
   const mount=$('classReviewMount');
   if(!data.range?.class_code&&!$('reportClass').value){
    if(aggregateAllowed){const issues=students.filter(st=>Number(st.concern||0)>0||Number(st.absent||0)>0||Number(st.late||0)>0);if(issues.length)mount.innerHTML='<h3>Tổng hợp nội dung cần cải thiện</h3>'+table(['Lớp','Mã HS','Học sinh','Ghi nhận cần cải thiện','Vắng','Muộn'],issues.map(st=>[escape(st.class_code),escape(st.student_code),escape(st.full_name),st.concern||0,st.absent||0,st.late||0]));}
@@ -115,12 +118,12 @@
   window._applyGvcnView?.();
  }
  async function make(){
-  if(busy){queuedMake=true;return;}const c=context();if(noClass())return;if(!scope().admin&&!scope().homeroom){$('reportRange').value='week';await setRange();if(busy){queuedMake=true;return;}}const from=$('reportFrom').value,to=$('reportTo').value,kind=$('reportRange').value,cls=$('reportClass').value;
+  if(!classVisible())return;if(busy){queuedMake=true;return;}const c=context();if(noClass())return;if(!scope().admin&&!scope().homeroom){$('reportRange').value='week';await setRange();if(!classVisible())return;if(busy){queuedMake=true;return;}}const from=$('reportFrom').value,to=$('reportTo').value,kind=$('reportRange').value,cls=$('reportClass').value;
   if(!from||!to||from>to)return notify('Chọn khoảng ngày hợp lệ.');
   const revision=++requestRevision;busy=true;$('makeReport').disabled=true;result=null;$('exportReport').disabled=$('exportWord').disabled=$('printReport').disabled=true;$('reportResult').setAttribute('aria-busy','true');$('reportResult').textContent='Đang tải đánh giá…';
   try{const year=schoolYear();let data;if(c.demo)data=demoReport(c,from,to);else{const isSchool=scope().school,[r,completion,handoff]=await Promise.all([c.client.rpc(isSchool?'v4_school_report':'v4_class_report',{y:year,c:cls,d1:from,d2:to,range_kind:kind,include_details:!(scope().admin&&!cls)}),c.client.rpc('v4_report_completion',{y:year,c:cls,d1:from,d2:to,scope_kind:isSchool?'school':'class'}),cls&&!isSchool?c.client.rpc('v4_lesson_handoffs',{y:year,c:cls,d1:from,d2:to,range_kind:kind}):Promise.resolve({data:null})]);if(r.error)throw r.error;if(completion.error)throw completion.error;if(handoff.error)throw handoff.error;if(revision!==requestRevision)return;data=r.data;Object.assign(data,completion.data);if(cls&&!isSchool){const reviews=new Map((handoff.data||[]).map(row=>[String(row.session_id),row]));for(const row of data.lesson_reviews||[])if(!reviews.has(String(row.session_id)))reviews.set(String(row.session_id),row);data.lesson_reviews=[...reviews.values()];}}
-   if(revision!==requestRevision)return;data.students=data.students||[];data.sessions=data.sessions||[];data.observations=data.observations||[];
-   studentOptions(data.students);result={data,from,to,classLabel:cls?'Lớp '+cls:'Toàn trường',periodLabel:kind==='semester'?$('reportTerm').selectedOptions[0].textContent:label[kind],schoolYear:$('reportYear').value};render();
+   if(revision!==requestRevision||context()?.userId!==c.userId)return;data.students=data.students||[];data.sessions=data.sessions||[];data.observations=data.observations||[];
+   studentOptions(data.students);result={data,from,to,classLabel:cls?'Lớp '+cls:'Toàn trường',periodLabel:kind==='semester'?$('reportTerm').selectedOptions[0].textContent:label[kind],schoolYear:$('reportYear').value};if(classVisible())render();else renderPending=true;
   }catch(error){if(revision===requestRevision)showFailure(error);}
   finally{busy=false;$('makeReport').disabled=!scope().admin&&!$('reportClass').value;if(revision===requestRevision)$('reportResult').setAttribute('aria-busy','false');if(queuedMake){queuedMake=false;setTimeout(make,0);}}
 
@@ -129,7 +132,7 @@
   if(!result)throw Error('Cần tổng hợp trước');const selected=$('reportStudent').value,data=result.data,students=data.students.filter(s=>!selected||s.id===selected),observations=data.observations.filter(o=>!selected||o.student_id===selected),selectedClass=students[0]?.class_code,sessions=scopedSessions(data,selected);
   return {lessonReviews:selected?[]:(data.lesson_reviews||[]),aggregateAllowed:data.permissions?.aggregate??(scope().admin||scope().homeroom),deficienciesOnly:!!(scope().admin||scope().homeroom),rawAttendance:(data.attendance||[]).filter(a=>!selected||a.student_id===selected),detailsIncluded:data.details_included!==false,title:'BÁO CÁO HỌC SINH – TRẦN PHÚ',schoolYear:result.schoolYear,classLabel:selected?('Lớp '+selectedClass+' · '+students[0].full_name):result.classLabel,periodLabel:result.periodLabel,from:result.from,to:result.to,generatedAt:new Date().toISOString(),students,observations,sessions,attendance:students.map(s=>({...s,student_id:s.id})),totals:[{name:'Nội dung cần cải thiện',count:students.reduce((n,st)=>n+Number(st.concern||0),0)},{name:'Lượt vắng',count:students.reduce((n,st)=>n+Number(st.absent||0),0)},{name:'Lượt đi muộn',count:students.reduce((n,st)=>n+Number(st.late||0),0)}].filter(item=>item.count>0),contextNote:(data.permissions?.health===false?'Không bao gồm nội dung sức khỏe ngoài phạm vi quyền được cấp. ':'')+'Điểm danh tự động chờ xác nhận được thống kê riêng, không đưa vào tỷ lệ có mặt đã xác nhận. '+(selected?'Trạng thái chờ xác nhận của cả tiết xem trong báo cáo lớp. ':((data.completion||[]).reduce((n,s)=>n+Number(s.automatic_present||0),0))+' lượt có mặt tự động chờ xác nhận. ')+'Chỉ tính các tiết và ghi nhận trên ứng dụng. Chưa xác nhận không đồng nghĩa vắng. Sĩ số là danh sách hiện tại; số tiết mở là của lớp, không phải số tiết bắt buộc của từng học sinh. Không tự xếp loại học sinh.'+(data.details_included===false?' Báo cáo toàn trường chỉ gồm số liệu tổng hợp.':'')};
  }
- window.addEventListener('focus',()=>{if(!$('progressPage').hidden)open();});window.addEventListener('tranphu:lesson-review-saved',()=>{stamp='';invalidate();});$('makeReport').onclick=make;$('reportStudent').onchange=()=>{exportJob?.cancel();if(result)render();};
+ window.addEventListener('focus',()=>{if(!$('progressPage').hidden)open();});window.addEventListener('tranphu:lesson-review-saved',()=>{stamp='';invalidate();});window.addEventListener('tranphu:observation-changed',()=>{stamp='';invalidate();});$('makeReport').onclick=make;$('reportStudent').onchange=()=>{exportJob?.cancel();if(result)render();};
  $('reportClass').onchange=()=>{updateScope();setRange().then(()=>{if(!scope().admin&&!scope().homeroom)make();});};$('reportRange').onchange=setRange;$('reportAnchor').onchange=setRange;$('reportMonth').onchange=setRange;$('reportTerm').onchange=setRange;$('reportYear').onchange=()=>{invalidate();setRange();};
  $('reportWeek').onchange=()=>{$('reportAnchor').value=$('reportWeek').value;setRange().then(make);};
  const shiftWeek=amount=>{const select=$('reportWeek'),next=select.selectedIndex+amount;if(next<0||next>=select.options.length)return;select.selectedIndex=next;select.onchange();};
@@ -139,7 +142,7 @@
   if(exporting)return;let data;try{data=exportData();if(kind==='word'&&!data.aggregateAllowed)return;}catch(error){notify(error.message);return;}
   if(scope().school||result?.data.permissions?.export===false||!scope().admin&&!scope().homeroom)return;const revision=requestRevision;exporting=true;$('exportReport').disabled=$('exportWord').disabled=true;
   const status=$('reportExportStatus'),cancel=$('cancelReportExport');if(status){status.hidden=false;status.textContent='Đang chuẩn bị tệp…';}if(cancel)cancel.hidden=false;
-  try{if(window.Worker&&window.TranPhuReportJobs){exportJob=window.TranPhuReportJobs.start(kind,data,phase=>{if(status)status.textContent=phase==='building'?'Đang tạo tệp…':'Đang tải công cụ xuất…';});const output=await exportJob.promise;if(revision===requestRevision&&result)window.TranPhuReportJobs.save(output);}else{await window.TranPhuAssets?.excel();if(revision===requestRevision&&result)window.TranPhuReportExport[kind](data);}}
+  try{if(window.Worker&&window.TranPhuReportJobs){exportJob=window.TranPhuReportJobs.start(kind,data,phase=>{if(status)status.textContent=phase==='building'?'Đang tạo tệp…':'Đang tải công cụ xuất…';});const output=await exportJob.promise;if(revision===requestRevision&&result)window.TranPhuReportJobs.save(output);}else{await window.TranPhuAssets?.excel();await window.TranPhuFeatures?.exporter();if(revision===requestRevision&&result)window.TranPhuReportExport[kind](data);}}
   catch(error){notify(error.name==='AbortError'?'Đã hủy xuất báo cáo.':error.message);}finally{exporting=false;exportJob=null;if(status)status.hidden=true;if(cancel)cancel.hidden=true;if(result){$('exportReport').disabled=false;$('exportWord').disabled=false;}}
  }
  if($('cancelReportExport'))$('cancelReportExport').onclick=()=>exportJob?.cancel();
@@ -174,7 +177,7 @@
     btn.setAttribute('aria-pressed',String(on));
    });
    const dashMount=$('reportDashboardMount');
-   const reviewMount=$('classReviewMount');
+   const reviewMount=$('classReviewMount');const studentMount=$('homeroomStudentMount');if(studentMount)studentMount.hidden=!(view==='all'||view==='students');
    const supportSec=$('supportSection');
    const supportAllowed=context()?.canSupport===true;
    const supportTab=container.querySelector('[data-gvcn-view="support"]');
@@ -192,8 +195,8 @@
   container.querySelectorAll('button[data-gvcn-view]').forEach(btn=>{
    btn.addEventListener('click',()=>applyView(btn.dataset.gvcnView));
   });
-  window._applyGvcnView=()=>applyView(activeView);
+  window._applyGvcnView=()=>applyView(activeView);window._applyGvcnViewTo=applyView;
  }
  setupGvcnViewTabs();
- window.TranPhuReports={open,make,isSchoolMode:()=>schoolMode,parentContext:()=>result&&!scope().c.admin&&scope().homeroom&&!scope().school&&$('reportRange').value==='week'?{...result,selected:$('reportStudent').value}:null};if(document.body.dataset.page==='progress')open();
+ window.TranPhuReports={open,make,preserve,isSchoolMode:()=>schoolMode,parentContext:()=>result&&!scope().c.admin&&scope().homeroom&&!scope().school&&$('reportRange').value==='week'?{...result,selected:$('reportStudent').value}:null};if(document.body.dataset.page==='progress')open();
 })();

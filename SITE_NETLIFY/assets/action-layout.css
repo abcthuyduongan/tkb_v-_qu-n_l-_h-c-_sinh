@@ -1,5 +1,14 @@
 /* Shared screen-only command layout. Inputs and paper layouts keep their own grids. */
 @media screen {
+ /* Shared keyboard and form states across teacher pages and dialogs. */
+ :is(.page,.tp-dialog,.teacher-account-dialog) :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea){border-radius:var(--tp-radius-control,8px);font-family:inherit;box-sizing:border-box;max-width:100%}
+ :is(.page,.tp-dialog,.teacher-account-dialog) :is(input:not([type="checkbox"]):not([type="radio"]),select){min-height:44px}
+ :is(.page,.tp-dialog,.teacher-account-dialog) :is(button,a,input,select,textarea,summary):focus-visible{outline:2px solid var(--tp-primary,#075cc2);outline-offset:3px}
+ :is(.page,.tp-dialog,.teacher-account-dialog) button:disabled{cursor:not-allowed;opacity:.5}
+ :is(.page,.tp-dialog,.teacher-account-dialog) textarea{resize:vertical;line-height:1.5}
+ .behaviors button[aria-pressed="true"]:disabled{opacity:1;cursor:default}
+ .behaviors button[aria-pressed="true"]::after{content:" ✓";font-weight:700}
+ .barlinks>a[href*="huong-dan"]{order:100;flex-shrink:0}
  /* One control family for commands in the portal, timetable and dialogs. */
  body :is(.btn,.primary-btn,.secondary-btn,.tp-dialog-button){
   box-sizing:border-box;min-height:44px;height:auto;border-radius:var(--tp-radius-control,8px);font-family:var(--tp-font-family,"Segoe UI",Tahoma,Arial,sans-serif);font-weight:600;line-height:1.35;box-shadow:none;cursor:pointer;touch-action:manipulation;

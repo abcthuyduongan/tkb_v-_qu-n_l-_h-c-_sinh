@@ -23,7 +23,7 @@ window.TkbStore=(()=>{
     const cfg=window.TKB_CONFIG,all=[];
     for(let offset=0;offset<100000;offset+=1000){
       const url=new URL('/rest/v1/'+table,cfg.supabaseUrl);url.search=new URLSearchParams({...params,limit:1000,offset});
-      const abort=new AbortController(),timer=setTimeout(()=>abort.abort(),20000);
+      const abort=new AbortController(),timer=setTimeout(()=>abort.abort(),8000);
       try{
         const r=await fetch(url,{headers:{apikey:cfg.supabaseAnonKey,Authorization:'Bearer '+cfg.supabaseAnonKey},signal:abort.signal,cache:'no-store'});
         if(!r.ok){const info=await r.json().catch(()=>({}));const error=Error(info.message||'Lỗi tải dữ liệu '+r.status);error.code=info.code;throw error;}

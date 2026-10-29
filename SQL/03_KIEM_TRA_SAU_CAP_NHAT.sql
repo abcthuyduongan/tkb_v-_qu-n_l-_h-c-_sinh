@@ -44,4 +44,23 @@ SELECT r.rolname,c.relrowsecurity AS rls_enabled,
  has_table_privilege(r.oid,c.oid,'DELETE') AS direct_delete_must_be_false
 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace CROSS JOIN pg_roles r
 WHERE n.nspname='public' AND c.relname='v4_feedback' AND r.rolname IN ('anon','authenticated');
+-- Weekly rotation: two installed RPCs, anon=false/authenticated=true; reader invoker, writer definer.
+SELECT x.signature,p.oid IS NOT NULL AS installed,p.prosecdef AS security_definer,
+ has_function_privilege('anon',p.oid,'EXECUTE') AS anon_execute,
+ has_function_privilege('authenticated',p.oid,'EXECUTE') AS authenticated_execute
+FROM (VALUES('public.v4_get_seating_rotation(text,text)'),('public.v4_save_seating_rotation(text,text,jsonb,integer,timestamptz)')) x(signature)
+LEFT JOIN pg_proc p ON p.oid=to_regprocedure(x.signature);
+SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name='v4_layouts' AND column_name IN ('rotation_config','rotation_revision');
+-- Review correction: same-day guard applies to observation UPDATE, not only INSERT.
+SELECT coalesce(position('IF NOT public.v4_check_lesson_writable' in pg_get_functiondef(to_regprocedure('public.v4_same_day_observation_guard()')))>0,false) AS correction_guard_installed;
+SELECT x.signature,p.oid IS NOT NULL AS installed,p.prosecdef AS security_definer,
+ has_function_privilege('anon',p.oid,'EXECUTE') AS anon_execute,
+ has_function_privilege('authenticated',p.oid,'EXECUTE') AS authenticated_execute
+FROM (VALUES('public.v4_withdraw_observation(uuid,text,timestamptz)'),('public.v4_withdrawn_observations(uuid)'),('public.v4_my_lesson_week(text,date)')) x(signature)
+LEFT JOIN pg_proc p ON p.oid=to_regprocedure(x.signature);
+SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name='v4_observations' AND column_name IN('withdrawn_at','withdrawn_by','withdrawal_reason');
+SELECT policyname,permissive,cmd FROM pg_policies WHERE schemaname='public' AND tablename='v4_observations' AND policyname='v4_obs_effective';
+SELECT has_table_privilege('authenticated','public.v4_observations','UPDATE') AS table_update_must_be_false,
+ has_column_privilege('authenticated','public.v4_observations','note','UPDATE') AS note_update_must_be_true,
+ CASE WHEN EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='v4_observations' AND column_name='withdrawn_at') THEN has_column_privilege('authenticated','public.v4_observations','withdrawn_at','UPDATE') END AS withdrawal_update_must_be_false;
 -- SQL Editor khong dai dien JWT giao vien. Sau day van can test dang nhap/phan quyen that.

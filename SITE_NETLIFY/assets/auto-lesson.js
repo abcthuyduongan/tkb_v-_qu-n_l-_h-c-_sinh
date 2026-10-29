@@ -20,6 +20,7 @@
     const schedule = Number.isFinite(end) ? 'Tiết ' + session.period_no + (Number.isFinite(start) ? ': ' + clock(start) + '–' : ' đến ') + clock(end) + ' (giờ Việt Nam). ' : '';
     const withinDay = 'Ghi nhận trong ngày học; sang ngày mới chỉ xem lại.';
     if (date < today) return { state: 'ended', text: 'Đã kết thúc', description: 'Tiết học ngày ' + displayDay(date) + ' đã kết thúc. Chỉ được xem lại, không ghi nhận cho ngày trước.' };
+    if(session._pending&&date===today)return {state:'pending',text:'Tiết lưu tạm · Chờ gửi',description:'Tiết chỉ được tạo trên máy chủ sau khi đồng bộ thành công.'};
     if (date > today) return { state: 'upcoming', text: 'Chưa đến giờ', description: 'Tiết học ngày ' + displayDay(date) + '. ' + schedule + withinDay };
     const manuallyEnded = serverStatus ? serverStatus.manual_ended_at : session.ended_at;
     if (manuallyEnded) return { state: 'ended', text: 'Đã kết thúc', description: schedule + withinDay };

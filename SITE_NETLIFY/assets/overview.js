@@ -13,11 +13,12 @@
  function demo(c){const s=c.session;return {completion:s?[{...s,teacher_id:c.userId,teacher_name:c.profile?.teacher_name,expected:c.students.filter(s=>s.active!==false).length,confirmed:c.attendance.length,automatic_present:0,attendance_state:c.attendance.length>=c.students.filter(s=>s.active!==false).length&&c.attendance.length?'confirmed':'pending',review_confirmed:window.TranPhuLessonReview?.demoRows.has(s.id)||false,can_write:true}]:[],scheduled_today:[],server_today:day()};}
  async function refresh(){
   setup();if($('overviewPage').hidden||$('appView').hidden)return;const c=context(),current=++revision;limit=12;
-  $('overviewResult').textContent='Đang tải tổng quan…';$('overviewResult').setAttribute('aria-busy','true');
+  if(!$('overviewResult').querySelector('.rd-stats'))$('overviewResult').textContent='Đang tải tổng quan…';$('overviewResult').setAttribute('aria-busy','true');
   const to=day(),d=new Date(to+'T12:00:00Z');if(days===7)d.setUTCDate(d.getUTCDate()-(d.getUTCDay()+6)%7);const from=days===1?to:d.toISOString().slice(0,10);
+  const cacheKey='overview:'+c.year+'|'+scope+'|'+from+'|'+to;let cached=null;if(!c.demo){cached=await window.TranPhuOffline?.cacheGet(cacheKey);if(cached&&current===revision){draw(cached,c,from,to);$('overviewResult').setAttribute('aria-busy','false');}}
   try{let data;if(c.demo)data=demo(c);else{const [r,activity]=await Promise.all([c.client.rpc('v4_overview',{y:c.year,d1:from,d2:to,scope_kind:scope}),c.admin?c.client.rpc('v4_account_activity_summary'):Promise.resolve({data:null})]);if(r.error)throw r.error;if(activity.error)throw activity.error;data=r.data;if(c.admin)data.account_activity=activity.data||[];}
-   if(current!==revision)return;draw(data,c,from,to);
-  }catch(error){if(current===revision){$('overviewResult').innerHTML='<p role="alert">Chưa tải được tổng quan. Kiểm tra kết nối hoặc cập nhật chức năng trên máy chủ, rồi bấm Làm mới.</p>';}}
+   if(current!==revision)return;draw(data,c,from,to);if(!c.demo)window.TranPhuOffline?.cachePut(cacheKey,data).catch(()=>{});
+  }catch(error){if(current===revision&&!cached){$('overviewResult').innerHTML='<p role="alert">Chưa tải được tổng quan. Kiểm tra kết nối hoặc cập nhật chức năng trên máy chủ, rồi bấm Làm mới.</p>';}}
   finally{if(current===revision)$('overviewResult').setAttribute('aria-busy','false');}
  }
  function draw(data,c,from,to){
@@ -53,5 +54,5 @@
  $('overviewPeriod').onclick=e=>{const b=e.target.closest('[data-days]');if(b){days=Number(b.dataset.days);$('overviewPeriod').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));refresh();}};
  new MutationObserver(refresh).observe(document.body,{attributes:true,attributeFilter:['data-page']});
  new MutationObserver(setup).observe($('appView'),{attributes:true,attributeFilter:['hidden']});
- window.addEventListener('focus',()=>{if(!$('overviewPage').hidden)refresh();});setup();
+ window.addEventListener('tranphu:cache-verified',refresh);window.addEventListener('focus',()=>{if(!$('overviewPage').hidden)refresh();});setup();
 })();
