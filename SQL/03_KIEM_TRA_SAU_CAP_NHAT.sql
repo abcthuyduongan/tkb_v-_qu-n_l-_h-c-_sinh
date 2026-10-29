@@ -63,4 +63,22 @@ SELECT policyname,permissive,cmd FROM pg_policies WHERE schemaname='public' AND 
 SELECT has_table_privilege('authenticated','public.v4_observations','UPDATE') AS table_update_must_be_false,
  has_column_privilege('authenticated','public.v4_observations','note','UPDATE') AS note_update_must_be_true,
  CASE WHEN EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='v4_observations' AND column_name='withdrawn_at') THEN has_column_privilege('authenticated','public.v4_observations','withdrawn_at','UPDATE') END AS withdrawal_update_must_be_false;
+-- Atomic seating: reader invoker, writer definer; both anon=false/authenticated=true.
+SELECT x.signature,p.oid IS NOT NULL AS installed,p.prosecdef AS security_definer,
+ has_function_privilege('anon',p.oid,'EXECUTE') AS anon_execute,
+ has_function_privilege('authenticated',p.oid,'EXECUTE') AS authenticated_execute,
+ p.proconfig AS function_settings
+FROM (VALUES('public.v4_get_seating_workspace(text,text)'),('public.v4_apply_seating_change(text,text,uuid,text,jsonb,uuid)')) x(signature)
+LEFT JOIN pg_proc p ON p.oid=to_regprocedure(x.signature);
+SELECT column_name,data_type,is_nullable FROM information_schema.columns
+WHERE table_schema='public' AND table_name='v4_layouts' AND column_name='seating_revision';
+SELECT tgname,tgenabled FROM pg_trigger WHERE tgrelid=to_regclass('public.v4_layouts') AND tgname='v4_seating_revision_guard';
+-- Receipts: two rows, RLS=true and all direct privileges=false. No receipt content is read.
+SELECT r.rolname,c.relrowsecurity AS rls_enabled,
+ has_table_privilege(r.oid,c.oid,'SELECT') AS direct_select_must_be_false,
+ has_table_privilege(r.oid,c.oid,'INSERT') AS direct_insert_must_be_false,
+ has_table_privilege(r.oid,c.oid,'UPDATE') AS direct_update_must_be_false,
+ has_table_privilege(r.oid,c.oid,'DELETE') AS direct_delete_must_be_false
+FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace CROSS JOIN pg_roles r
+WHERE n.nspname='public' AND c.relname='v4_seating_actions' AND r.rolname IN ('anon','authenticated');
 -- SQL Editor khong dai dien JWT giao vien. Sau day van can test dang nhap/phan quyen that.

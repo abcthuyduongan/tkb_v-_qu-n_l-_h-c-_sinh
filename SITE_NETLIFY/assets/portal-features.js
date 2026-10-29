@@ -22,5 +22,6 @@
  const students=()=>Promise.all([style('/assets/student-management.css?v=70'),script('/assets/student-management.js?v=70',()=>!!window.TranPhuStudents)]);
  const admin=()=>Promise.all([style('/assets/admin-workspace.css?v=93'),script('/assets/admin-workspace.js?v=93',()=>!!window.TranPhuAdminWorkspace)]);
  const exporter=()=>script('/assets/class-report-export.js?v=76',()=>!!window.TranPhuReportExport);
- window.TranPhuFeatures=Object.freeze({students,admin,exporter});
+ const seating=()=>Promise.all([style('/assets/seating-workspace.css?v=98'),script('/assets/seating-workspace.js?v=98',()=>!!window.TranPhuSeatingWorkspace)]);
+ window.TranPhuFeatures=Object.freeze({students,admin,exporter,seating});
 })();

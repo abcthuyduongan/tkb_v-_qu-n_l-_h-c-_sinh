@@ -1,0 +1,89 @@
+/* The editor owns its workspace sizing; assessment retains classroom-scene rules. */
+@media screen{
+ #homeroomPage .homeroom-box{padding:14px;min-width:0}
+ #homeroomPage .seating-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+ #homeroomPage .seating-context{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0}
+ #homeroomPage #seatingClassWrap{margin:0;display:flex;align-items:center;gap:8px;font-size:14px}
+ #homeroomPage #seatingClass{width:100px;min-height:44px}
+ #homeroomPage .layoutConfirmBar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0}
+ #homeroomPage .layoutConfirmBar>.btn{flex:0 0 auto;width:auto;white-space:nowrap}
+ #homeroomPage button{min-height:44px;font-size:14px}
+ #homeroomPage .seating-config{display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap;margin:0 0 6px}
+ #homeroomPage .seating-config>details{margin:0;min-width:0;flex:1 1 210px}
+ #homeroomPage .seating-config>details:not([open]){flex:0 1 auto;border:0;padding:0}
+ #homeroomPage .seating-config summary{min-height:44px;display:flex;align-items:center;gap:8px;font-size:14px}
+ #homeroomPage .seating-config>details:not([open]) summary{padding:6px 10px;border:1px solid var(--tp-border);border-radius:8px}
+ #homeroomPage .seating-reference-label{font-size:13px;margin:6px 0 10px}
+ #homeroomPage #seatingWorkArea{display:grid;grid-template-columns:280px minmax(0,1fr);gap:12px;min-width:0;min-height:0;position:relative}
+ #homeroomPage #seatingWorkArea:has(#seatingRoster[hidden]){grid-template-columns:minmax(0,1fr)}
+ #homeroomPage #seatingRoster{padding:12px;border:1px solid var(--tp-border);border-radius:10px;background:var(--tp-surface,#fff);min-width:0;align-self:start;max-height:calc(100dvh - 220px);overflow:auto}
+ #homeroomPage .seating-roster-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+ #homeroomPage .seating-roster-head h3{margin:0;font-size:16px}
+ #homeroomPage #seatingRosterTabs{display:flex;gap:6px;margin:8px 0}
+ #homeroomPage #seatingRosterTabs button{flex:1;padding:6px;border:1px solid var(--tp-border);border-radius:8px;background:white;color:var(--tp-text)}
+ #homeroomPage #seatingRosterTabs [aria-pressed=true]{background:var(--tp-primary-soft);border-color:var(--tp-primary);color:var(--tp-primary)}
+ #homeroomPage #seatingSearch{width:100%;min-height:44px;font-size:16px;margin:0 0 8px}
+ #homeroomPage .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
+ #homeroomPage #unseated{display:grid;gap:6px;max-width:100%}
+ #homeroomPage #unseated button{display:block;text-align:left;padding:9px 10px;min-width:0;border:1px solid var(--tp-border);border-radius:8px;background:#fff;color:var(--tp-text);overflow-wrap:anywhere}
+ #homeroomPage #unseated button[aria-pressed=true]{border-color:var(--tp-primary);background:var(--tp-primary-soft)}
+ #homeroomPage #unseated strong,#homeroomPage #unseated small{display:block;font-size:14px}
+ #homeroomPage #unseated small{font-size:12px;color:var(--tp-muted);margin-top:3px}
+ #homeroomPage .seating-canvas{min-width:0;min-height:0}
+ #homeroomPage .seating-action-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+ #homeroomPage #seatingSelection{font-size:13px;flex:1 1 200px;margin:0;line-height:1.5}
+ #homeroomPage .seating-action-bar button{padding:6px 10px}
+ #homeroomPage #seatingMessage{font-size:13px;margin:4px 0;color:var(--tp-muted)}
+ #homeroomPage #seatingMessage:empty{display:none}
+ #homeroomPage #seatingMessage.error{color:#a12636}
+ #homeroomPage .seating-feedback{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+ #homeroomPage .seating-feedback:not(:has(#seatingMessage:not(:empty))):not(:has(#seatingRetry:not([hidden]))){display:none}
+ #homeroomPage .seating-action-bar:not(:has(button:not([hidden]))):not(:has(p:not([hidden]))){display:none}
+ #homeroomPage .seating-map-tools{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;margin-bottom:6px;min-width:0}
+ #homeroomPage .seating-map-tools .classroom-group-tabs{grid-column:auto;width:auto;min-width:0;max-width:100%;margin:0;padding-bottom:0}
+ #homeroomPage .seating-map-tools>button{flex:none;padding:6px 9px;font-size:13px;white-space:nowrap}
+ #homeroomPage .seating-feedback>p{flex:1 1 200px}
+ #homeroomPage #seatingSwapPanel{padding:10px;margin:6px 0;border:1px solid var(--tp-primary);border-radius:8px;background:var(--tp-primary-soft)}
+ #homeroomPage #seatingSwapText{margin:0 0 8px;font-size:14px;overflow-wrap:anywhere}
+ #appView #seatingViewport{height:var(--seating-map-height,400px);min-height:260px}
+ #appView #seatingEditor .seating-view-tools{margin:0 0 6px}
+ #appView #seatingEditor .seating-view-tools p{font-size:12px}
+ #appView #seatingEditor .classroom-group-tabs{padding-bottom:6px}
+ #appView #seatingEditor.classroom-compact .seat{min-height:80px;grid-template-columns:28px minmax(0,1fr);gap:5px}
+ #appView #seatingEditor.classroom-compact .seat .studentName{font-size:14px;line-height:1.45}
+ #appView #seatingEditor.classroom-compact .seat .avatar,#appView #seatingEditor.classroom-compact .seat .studentCharacter,#appView #seatingEditor.classroom-compact .seat .genderAvatar{width:28px;height:34px}
+ #appView #seatingEditor .seat.seat-source{outline:3px solid var(--tp-primary);outline-offset:1px;background:var(--tp-primary-soft)}
+ #appView #seatingEditor .seat.seat-target{outline:3px solid #b56b09;outline-offset:1px}
+ body.seating-focus{overflow:hidden}
+ #appView #homeroomPage.seating-expanded{position:fixed;inset:60px 0 var(--tp-bottom-nav-height,0px);z-index:30;margin:0;padding:8px;background:var(--tp-surface-subtle,#f8fafc);overflow:hidden}
+ #homeroomPage.seating-expanded .homeroom-box{height:100%;width:100%;max-width:none;display:flex;flex-direction:column;margin:0}
+ #homeroomPage.seating-expanded .seating-config,#homeroomPage.seating-expanded .seating-reference-label{display:none}
+ #homeroomPage.seating-expanded #seatingWorkArea{flex:1;min-height:0}
+ #homeroomPage.seating-expanded .seating-canvas{display:flex;flex-direction:column;min-height:0}
+ #appView #homeroomPage.seating-expanded #seatingEditor{display:flex;flex-direction:column;flex:1;min-height:0}
+ #appView #homeroomPage.seating-expanded #seatingViewport{height:auto;min-height:120px;flex:1}
+ #homeroomPage.seating-expanded #seatingRoster{max-height:100%;height:100%;align-self:stretch}
+ #homeroomPage #seatingRefresh{font-size:21px;padding:5px;min-width:44px;margin-left:auto}
+ #homeroomPage.seating-expanded .classroom-direction{display:none}
+}
+@media screen and (min-width:1101px){#appView #homeroomPage.seating-expanded{left:220px;width:calc(100% - 220px);max-width:none}}
+@media screen and (max-height:500px){
+ #homeroomPage.seating-expanded .homeroom-box{overflow:auto;overscroll-behavior:contain}
+ #appView #homeroomPage.seating-expanded #seatingViewport{min-height:72px}
+}
+@media screen and (max-width:900px){
+ #homeroomPage #seatingWorkArea{grid-template-columns:minmax(0,1fr)}
+ #homeroomPage #seatingRoster{position:absolute;z-index:8;inset:0 0 auto auto;width:min(100%,360px);max-height:min(55dvh,440px);box-shadow:0 5px 24px #12335d29}
+ #homeroomPage .layoutConfirmBar{gap:6px}
+ #homeroomPage .layoutConfirmBar button{padding:7px 10px}
+ #homeroomPage .seating-heading{gap:6px}
+ #homeroomPage .seating-context{gap:8px;font-size:13px}
+ #homeroomPage .seating-config{gap:6px}
+ #homeroomPage .seating-config summary{font-size:13px}
+ #appView #seatingEditor .seating-view-tools p{display:none}
+ #appView #seatingEditor .seating-view-tools{justify-content:flex-end}
+ #homeroomPage .homeroom-box{padding:10px}
+ #homeroomPage #seatingSelection{font-size:12px}
+ #homeroomPage #seatingRosterTabs button{font-size:13px}
+}
+@media print{.seating-heading,.seating-config,.seating-reference-label,#seatingRoster,.seating-action-bar,.seating-feedback,#seatingSwapPanel{display:none!important}#seatingWorkArea{display:block!important}}

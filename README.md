@@ -1,4 +1,8 @@
-# Trần Phú — 6.7.0/cache96 (29/10/2026)
+# Trần Phú — 6.7.0/cache98 (29/10/2026)
+
+Cache98: mở rộng sơ đồ xếp chỗ, tìm học sinh, chọn trực tiếp để gán/chuyển/đổi hai học sinh và hoàn tác thao tác cuối hợp lệ; lưu máy chủ nguyên tử và chống gửi lặp. GVCN đúng lớp/admin giữ quyền hiện hành. Tổng quan đưa việc cần làm trước biểu đồ; Báo cáo có khung lọc gọn, menu xuất đúng quyền, GVCN có Tổng quan/Học sinh/Tiết-Môn/Nhật ký. Cần SQL16/module40 sau SQL15/module39 cho thao tác ghế mới; thiếu cập nhật thì sơ đồ chỉ xem và nêu cần cập nhật. Chi tiết kết quả và giới hạn trong báo cáo thực hiện đi kèm. Chưa SQL/push/deploy thật.
+
+Cache97: Tiết tôi dạy có thanh tuần/bộ lọc gọn, thẻ trạng thái ngắn, nguồn mở khi cần; điện thoại mở gần ngày hôm nay và giữ vị trí cuộn. Đọc PPCT đã công bố của môn/lớp, gồm Tin/Tin học và phạm vi Khối, theo lịch tuần trường và phiên bản TKB. Ô tiết hiển thị sốPPCT/tên bài theo kế hoạch; có tài liệu nhưng chưa ghép được sẽ nêu phần cần đối chiếu. Không đổi bài đã dạy/nhận định cũ. PPCT đọc khi mở báo cáo, dùng lại30giây; không tải PDF/Excel. Không có SQL mới cho97, tính năng95 vẫn cần SQL15. Báo cáo và giới hạn kiểm chứng trong THUC_HIEN_DANH_GIA_LAI_VA_BAO_CAO_2026_10_28.md; chưa push/deploy bởi agent.
 
 Cache96 tối ưu tải: công cụ quản trị, quản lý học sinh và bộ tạo báo cáo trên luồng chính chỉ nạp khi dùng; đăng nhập/đổi mật khẩu giữ sẵn. Báo cáo cá nhân không gọi thêm báo cáo lớp, chia sẻ truy vấn đang chạy và dùng lại kết quả tối đa30giây, Làm mới/thay đổi dữ liệu vẫn cập nhật. Cache nâng cấp tái dùng đúng URL có phiên bản, vẫn kiểm HTML/config mới và chỉ thay HTML khi đủ tài nguyên. Tài nguyên tùy chọn vẫn lưu trong shell để giữ khả năng dùng bản đã tải khi ngoại tuyến; lần cài PWA đầu vẫn có tải nền. Không có SQL mới cho tối ưu96; các tính năng95 bên dưới vẫn cần SQL15/module37–39. Kiểm chứng và giới hạn trong báo cáo duy nhất THUC_HIEN_DANH_GIA_LAI_VA_BAO_CAO_2026_10_28.md. Chưa push/deploy thật.
 
@@ -22,7 +26,7 @@ Bổ sung Tổng quan theo quyền, báo cáo trực quan, quyền Ban Giám Hi�
 
 Có mặt tự động là trạng thái do máy chủ tính sau giờ kết thúc trên danh sách đã chụp khi mở tiết, không phải điểm danh do giáo viên xác nhận. Không cần mở trình duyệt hoặc lịch chạy nền; không tạo tiết chưa mở, không thay số liệu cũ. Dữ liệu điểm danh thật giữ nguyên; các tệp xuất ghi rõ số lượt tự động được thống kê riêng.
 
-SQL10 gộp30/31: quyền BGH và hoạt động tài khoản. SQL11 gộp32/33: danh sách học sinh của tiết, xác nhận điểm danh, lịch sử thay đổi, nhận định nhanh và Tổng quan. Bản cập nhật không tự gán BGH cho tài khoản cũ. Chạy lại giữ điểm danh và danh sách đã chụp. Khi cập nhật mã, mở bản mới để nhận cache96; giữ nháp theo hướng dẫn ngoại tuyến.
+SQL10 gộp30/31: quyền BGH và hoạt động tài khoản. SQL11 gộp32/33: danh sách học sinh của tiết, xác nhận điểm danh, lịch sử thay đổi, nhận định nhanh và Tổng quan. Bản cập nhật không tự gán BGH cho tài khoản cũ. Chạy lại giữ điểm danh và danh sách đã chụp. Khi cập nhật mã, mở bản mới để nhận cache98; giữ nháp theo hướng dẫn ngoại tuyến.
 
 SQL12 bổ sung xếp chỗ cho quản trị sau SQL11; không trao quyền đánh giá tiết hoặc nhật ký hỗ trợ. Bố cục nút lệnh dùng chung hàng theo độ rộng thiết bị, bộ công cụ dài cuộn trong thanh riêng.
 
@@ -34,22 +38,25 @@ Sao lưu CSDL của trường trước. Mở SQL Editor đúng dự án, chạy 
 
 | Hiện trạng đã có | Thứ tự chạy tiếp |
 |---|---|
-| Module39/SQL15 | **03** hậu kiểm |
-| Module36–38/SQL14 | **15 →03** |
-| Module35/SQL13 đã sửa | **14 →15 →03** |
-| Module34/SQL12 hoặc35 cũ | **13 →14 →15 →03** hậu kiểm |
-| Module33/SQL11 | **12 →13 →14 →15 →03** |
-| Module31/SQL10 | **11 →12 →13 →14 →15 →03** |
-| Module29/SQL09 | **10 →11 →12 →13 →14 →15 →03** |
-| Module26/SQL08 | **09 →10 →11 →12 →13 →14 →15 →03** |
-| Module25/SQL07 | **08 →09 →10 →11 →12 →13 →14 →15 →03** |
-| Module23 | **07 →08 →09 →10 →11 →12 →13 →14 →15 →03** |
-| Module21 | **05 →07 →08 →09 →10 →11 →12 →13 →14 →15 →03** |
-| Module20 | **02 →05 →07 →08 →09 →10 →11 →12 →13 →14 →15 →03** |
+| Module40/SQL16 | **03** hậu kiểm |
+| Module39/SQL15 | **16 →03** hậu kiểm |
+| Module36–38/SQL14 | **15 →16 →03** |
+| Module35/SQL13 đã sửa | **14 →15 →16 →03** |
+| Module34/SQL12 hoặc35 cũ | **13 →14 →15 →16 →03** hậu kiểm |
+| Module33/SQL11 | **12 →13 →14 →15 →16 →03** |
+| Module31/SQL10 | **11 →12 →13 →14 →15 →16 →03** |
+| Module29/SQL09 | **10 →11 →12 →13 →14 →15 →16 →03** |
+| Module26/SQL08 | **09 →10 →11 →12 →13 →14 →15 →16 →03** |
+| Module25/SQL07 | **08 →09 →10 →11 →12 →13 →14 →15 →16 →03** |
+| Module23 | **07 →08 →09 →10 →11 →12 →13 →14 →15 →16 →03** |
+| Module21 | **05 →07 →08 →09 →10 →11 →12 →13 →14 →15 →16 →03** |
+| Module20 | **02 →05 →07 →08 →09 →10 →11 →12 →13 →14 →15 →16 →03** |
 | Chưa có module, đã có CSDL TKB gốc | **01 →03** |
 | Module cài một phần | Đối chiếu trước, không chạy01 |
 
-Số bên trên là file trong thư mục SQL của gói. Mỗi file chạy xong thành công rồi mới chạy file kế tiếp. Không chạy tất cả file từ00đến15. **Không chạy lại01 trên CSDL đã có module.**
+Số bên trên là file trong thư mục SQL của gói. Mỗi file chạy xong thành công rồi mới chạy file kế tiếp. Không chạy tất cả file từ00đến16. **Không chạy lại01 trên CSDL đã có module.**
+
+File16_XEP_CHO_NGUYEN_TU_VA_HOAN_TAC.sql bổ sung snapshot, phiên bản sơ đồ, đổi hai vị trí nguyên tử và hoàn tác; giữ dữ liệu ghế cũ. Bảng biên nhận kín bật RLS, tài khoản ứng dụng không được đọc/ghi trực tiếp. File03 hậu kiểm cả hai RPC, trigger phiên bản và quyền bảng biên nhận. Có module39 thì chỉ cần16 rồi03 sau sao lưu/kiểm thử riêng.
 
 File15_DANH_GIA_LAI_VA_BAO_CAO.sql gộp37–39: thống nhất khóa ngày khi sửa nhận xét, thu hồi có lý do/lịch sử và báo cáo tuần cá nhân đúng quyền. File03 kiểm thêm các RPC mới, chính sách chỉ đọc ghi nhận hiệu lực và quyền UPDATE chỉ cột note. Cần hoàn tất SQL15 trước khi nghiệm thu các tính năng cache95.
 

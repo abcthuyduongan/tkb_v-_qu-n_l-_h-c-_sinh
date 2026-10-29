@@ -1,0 +1,84 @@
+/* Report-specific structure owns filter, export and student-detail layout. */
+@media screen {
+ #progressPage #reportWorkScope{margin:0 0 12px;flex-wrap:nowrap}
+ #progressPage #reportAudience[hidden],#progressPage #gvcnReportTabs[hidden],#progressPage #reportExportMenu[hidden],#progressPage #reportStudentActions[hidden],#progressPage #reportExtraFilters[hidden]{display:none!important}
+ #progressPage .report-toolbar{margin-bottom:4px;gap:12px;justify-content:flex-start}
+ #progressPage .report-toolbar h2{display:none}
+ #progressPage #reportScope{font-size:14px;font-weight:600;color:var(--tp-text);white-space:nowrap;margin:0;flex:0 0 auto}
+ #progressPage #reportControls{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:0 0 12px;gap:8px;padding-bottom:10px;border-bottom:1px solid var(--tp-border)}
+ #progressPage #reportVisualTabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));flex:0 1 250px;width:250px;max-width:100%;margin:0;padding:3px;border:1px solid var(--tp-border);border-radius:10px;background:var(--tp-surface-subtle);gap:3px}
+ #progressPage #reportVisualTabs>button{min-width:0;min-height:44px;margin:0;padding:8px 9px;font-size:14px;white-space:nowrap;border-radius:7px}
+ #progressPage #reportVisualTabs[hidden],#progressPage .report-toolbar[hidden]{display:none!important}
+ #progressPage #reportMainBar{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:12px;margin:10px 0}
+ #progressPage #reportPrimaryFilters{display:flex;align-items:end;flex-wrap:wrap;gap:10px;min-width:0}
+ #progressPage #reportPrimaryFilters>label{flex:1 1 150px;max-width:230px;margin:0;min-width:0;font-size:13px;color:var(--tp-muted)}
+ #progressPage #reportPrimaryFilters>label:has(input[type="date"]){flex-basis:180px;max-width:200px}
+ #progressPage #reportPrimaryFilters :is(input,select){width:100%;min-height:44px;height:44px;font-size:16px;padding:8px 10px}
+ #progressPage #reportWeekWrap{flex:1 1 360px;gap:8px;max-width:520px;min-width:0}
+ #progressPage #reportWeekWrap>label{min-width:0;margin:0;font-size:13px;color:var(--tp-muted)}
+ #progressPage #reportWeekWrap select{font-size:14px}
+ #progressPage #reportMainBar .report-actions{display:flex;align-items:stretch;gap:8px;width:auto;margin:0;padding:0;overflow:visible;flex-wrap:wrap}
+ #progressPage #reportMainBar .report-actions>.btn{font-size:14px;min-height:44px;height:44px;padding:8px 14px}
+ #progressPage #reportExportMenu{position:relative;flex:none;margin:0;min-width:0}
+ #progressPage #reportExportMenu>summary{display:flex;align-items:center;justify-content:center;gap:8px;list-style:none;min-height:44px;height:44px;margin:0;padding:8px 14px;font-size:14px;cursor:pointer;box-sizing:border-box}
+ #progressPage #reportExportMenu>summary::-webkit-details-marker{display:none}
+ #progressPage #reportExportMenu>summary::after{content:'⌄';font-size:16px}
+ #progressPage #reportExportMenu>summary[aria-disabled="true"]{opacity:.5;cursor:not-allowed}
+ #progressPage .report-export-options{position:absolute;right:0;top:calc(100% + 6px);z-index:12;display:grid;gap:6px;min-width:180px;max-width:min(280px,calc(100vw - 60px));padding:8px;background:var(--tp-surface);border:1px solid var(--tp-border);border-radius:10px;box-shadow:0 8px 24px #14284b20}
+ #progressPage .report-export-options>.btn{width:100%;min-height:44px;font-size:14px;text-align:left;white-space:normal;margin:0}
+ #progressPage .report-export-options>[hidden]{display:none!important}
+ #progressPage #reportExtraFilters{margin:6px 0 10px}
+ #progressPage #reportExtraFilters>summary{font-size:13px;min-height:44px;padding-block:8px}
+ #progressPage #reportExtraFilters .report-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));align-items:end;gap:10px;margin:0;padding:10px;background:var(--tp-surface-subtle);border:1px solid var(--tp-border);border-radius:10px}
+ #progressPage #reportExtraFilters .report-filters>label{grid-column:auto;margin:0;min-width:0;font-size:13px}
+ #progressPage #reportExtraFilters .report-filters :is(input,select){width:100%;min-height:44px;font-size:16px}
+ #progressPage #reportGradeHint{display:block;margin-top:6px;color:var(--tp-muted);font-size:12px;line-height:1.5}
+ #progressPage #reportGradeHint[hidden]{display:none}
+ #progressPage .rd-lesson-filter-box{padding:10px;border:1px solid var(--tp-border);border-radius:8px;background:var(--tp-surface-subtle);margin:10px 0}
+ #progressPage .rd-lesson-filter-box h4{font-size:14px;margin:0 0 8px}
+ #progressPage .rd-lesson-filters{display:grid;grid-template-columns:repeat(2,minmax(0,230px));gap:10px}
+ #progressPage .rd-lesson-filters label{margin:0;min-width:0;font-size:13px;color:var(--tp-muted)}
+ #progressPage .rd-lesson-filters select{display:block;width:100%;font-size:16px;min-height:44px;margin:4px 0 0;padding:8px}
+ #progressPage #reportStudentActions{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:10px;background:var(--tp-primary-soft);border-radius:8px;margin:8px 0}
+ #progressPage #reportStudentActions>strong{margin-right:auto;font-size:14px;overflow-wrap:anywhere}
+ #progressPage #gvcnReportTabs{margin:10px 0;gap:4px}
+ #progressPage #gvcnReportTabs>button{font-size:13px;min-height:44px}
+ #progressPage .report-period{font-size:13px;line-height:1.5;margin:10px 0;color:var(--tp-muted)}
+ #progressPage #reportDashboardMount[hidden],#progressPage #homeroomStudentMount[hidden],#progressPage #classReviewMount[hidden]{display:none!important}
+ #progressPage .homeroom-student-workspace{min-width:0;display:grid;gap:16px;align-items:start}
+ #progressPage .homeroom-student-workspace.has-student-detail{grid-template-columns:minmax(0,1fr) minmax(300px,42%)}
+ #progressPage .homeroom-student-workspace>section{min-width:0}
+ #progressPage .homeroom-student-workspace h3{margin:8px 0;font-size:16px;line-height:1.5}
+ #progressPage .homeroom-student-search{display:block;max-width:320px;margin:8px 0 12px;font-size:13px;color:var(--tp-muted)}
+ #progressPage .homeroom-student-search input{display:block;width:100%;min-height:44px;margin-top:4px;font-size:16px}
+ #progressPage #homeroomStudentMount .tableScroller{max-width:100%;min-width:0;overflow:auto;scrollbar-width:thin}
+ #progressPage .homeroom-student-list .reportTable{min-width:660px}
+ #progressPage .homeroom-student-list [data-home-student]{font-size:14px;min-height:44px;text-align:left;white-space:normal;min-width:150px}
+ #progressPage #homeroomEvidenceDetails{padding:12px;border:1px solid var(--tp-border);border-radius:10px;background:var(--tp-surface-subtle);scroll-margin-top:90px}
+ #progressPage #homeroomEvidenceDetails[hidden]{display:none!important}
+ #progressPage #homeroomEvidenceDetails .reportTable{min-width:460px}
+ #progressPage .homeroom-evidence-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+ #progressPage .homeroom-evidence-actions .btn{font-size:13px;min-height:44px}
+}
+@media screen and (max-width:1000px){
+ #progressPage .homeroom-student-workspace.has-student-detail{grid-template-columns:1fr}
+ #progressPage .homeroom-student-workspace.has-student-detail>.homeroom-student-list{display:none}
+}
+@media screen and (max-width:700px){
+ #progressPage #reportVisualTabs{flex-basis:216px;width:216px}
+ #progressPage #reportMainBar{grid-template-columns:1fr;gap:10px}
+ #progressPage #reportPrimaryFilters>label{max-width:none;flex-basis:130px}
+ #progressPage #reportPrimaryFilters>label:has(input[type="date"]){max-width:none;flex-basis:150px}
+ #progressPage #reportMainBar .report-actions{width:100%}
+ #progressPage #reportMainBar .report-actions>.btn{flex:1 1 auto;min-width:0;font-size:14px}
+ #progressPage #reportExportMenu{flex:1 1 auto}
+ #progressPage #reportWeekWrap{flex-basis:100%;max-width:none;flex-wrap:wrap}
+ #progressPage #reportWeekWrap>label{flex:1 1 100%}
+ #progressPage #reportWeekWrap .report-week-actions{width:100%}
+ #progressPage #reportExtraFilters .report-filters{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #progressPage #reportExtraFilters .report-filters>label:last-child{grid-column:1/-1}
+ #progressPage .rd-lesson-filters{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #progressPage #gvcnReportTabs{gap:2px}
+ #progressPage #gvcnReportTabs>button{padding:9px 8px;font-size:13px;flex:1 0 auto}
+}
+@media print{#reportWorkScope,#reportControls,#reportMainBar,#reportExtraFilters,#reportStudentActions,.homeroom-student-search,.homeroom-evidence-actions,[data-home-back]{display:none!important}}

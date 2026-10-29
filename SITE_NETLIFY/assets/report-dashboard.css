@@ -19,7 +19,49 @@
 .report-extra-filters{margin:12px 0}.report-extra-filters>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;gap:8px;color:var(--tp-primary,#0877f9);font-weight:600}.report-extra-filters>summary::before{content:"+"}.report-extra-filters[open]>summary::before{content:"−"}.report-extra-filters>summary[hidden]{display:none}.report-extra-filters>summary:focus-visible{outline:2px solid var(--tp-primary,#0877f9);outline-offset:2px}
 
 .attendance-confirmation{margin:12px 0;padding:16px;border:1px solid var(--tp-border);border-radius:12px;background:var(--tp-surface-subtle,#f8fafc)}.attendance-confirmation[hidden]{display:none}.attendance-confirmation p{margin:0 0 12px;line-height:1.6}.quick-lesson-ratings{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;border:0;padding:8px 0;margin:0 0 12px}.quick-lesson-ratings legend{font-size:14px;font-weight:600}.quick-lesson-ratings label{display:flex!important;align-items:center;gap:8px;min-height:44px;padding:10px;border:1px solid var(--tp-border);border-radius:8px;font-size:13px!important;cursor:pointer}.quick-lesson-ratings input[type=radio]{width:18px!important;height:18px;flex-shrink:0;margin:0}.quick-lesson-ratings label:has(input:checked){background:var(--tp-primary-soft);border-color:var(--tp-primary)}
-.overview-chart{display:flex;gap:16px;min-height:180px;align-items:flex-end;justify-content:space-around}.overview-chart>div{flex:1;max-width:96px;text-align:center}.overview-bar{height:145px;display:flex;align-items:flex-end;justify-content:center}.overview-bar>span{width:100%;max-width:42px;background:#dbeafe;display:flex;align-items:flex-end;border-radius:6px 6px 0 0;min-height:2px}.overview-bar i{width:100%;background:#0877f9;border-radius:6px 6px 0 0}.overview-chart small{font-size:12px}.overview-task{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0;border-bottom:1px solid var(--tp-border)}.overview-task>div{min-width:0}.overview-task strong,.overview-task small{display:block;overflow-wrap:anywhere}.overview-task small{font-size:12px;color:var(--tp-muted);margin-top:4px}.overview-task button{flex-shrink:0}.historyItem small{display:block;margin-top:4px}#overviewPage .rd-panel{margin-top:16px}#overviewPage button{min-height:44px}#openOverview .ui-icon{width:20px;height:20px}
-@media(max-width:560px){.quick-lesson-ratings{grid-template-columns:1fr}.overview-task{align-items:flex-start;flex-direction:column}.overview-task button{align-self:flex-end}.attendance-confirmation .actions{display:flex;flex-wrap:wrap}.attendance-confirmation button{flex:1 1 160px}}
+.overview-chart{display:flex;gap:16px;min-height:180px;align-items:flex-end;justify-content:space-around}.overview-chart>div{flex:1;max-width:96px;text-align:center}.overview-bar{height:145px;display:flex;align-items:flex-end;justify-content:center}.overview-bar>span{width:100%;max-width:42px;background:#dbeafe;display:flex;align-items:flex-end;border-radius:6px 6px 0 0;min-height:2px}.overview-bar i{width:100%;background:#0877f9;border-radius:6px 6px 0 0}.overview-chart small{font-size:12px}.historyItem small{display:block;margin-top:4px}#openOverview .ui-icon{width:20px;height:20px}
+@media(max-width:560px){.quick-lesson-ratings{grid-template-columns:1fr}.attendance-confirmation .actions{display:flex;flex-wrap:wrap}.attendance-confirmation button{flex:1 1 160px}}
 
-#overviewPage .rd-panel button{padding:10px 14px;color:var(--tp-primary);background:var(--tp-surface);border:1px solid var(--tp-border-strong);border-radius:8px;font-weight:600;cursor:pointer}#overviewPage .rd-panel button:hover{background:var(--tp-primary-soft)}
+#overviewPage .rd-panel button{padding:10px 14px;color:var(--tp-primary);background:var(--tp-surface);border:1px solid var(--tp-border-strong);border-radius:8px;font-size:14px;font-weight:600;cursor:pointer}#overviewPage .rd-panel button:hover{background:var(--tp-primary-soft)}
+
+/* Overview owns its workspace layout; shared action strips do not size task buttons. */
+#overviewPage .overview-toolbar{display:flex;align-items:center;justify-content:flex-start;flex-wrap:wrap;gap:8px 12px;margin:0 0 12px}
+#overviewPage .overview-toolbar .report-audience,#overviewPage .overview-toolbar .report-visual-tabs{margin:0;max-width:100%;min-width:0}
+#overviewPage #overviewScope{flex:1 1 auto}
+#overviewPage #overviewScope.overview-scope-static{display:flex;min-height:44px;padding:0;border:0;background:transparent;overflow:visible;color:var(--tp-muted);font-size:14px;font-weight:600}
+#overviewPage #overviewPeriod{flex:0 1 auto}
+#overviewPage #refreshOverview{flex:0 0 auto;font-size:14px}
+#overviewPage .report-dashboard{margin:0}
+#overviewPage .rd-stats{gap:8px}
+#overviewPage .rd-stat{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:2px 10px;min-height:76px;padding:12px;font-size:14px;cursor:pointer}
+#overviewPage .rd-stat>span{display:block;font-size:13px;line-height:1.4}
+#overviewPage .rd-stat strong{grid-column:2;grid-row:1 / 3;margin:0;font-size:28px;line-height:1.2}
+#overviewPage .rd-stat small{font-size:12px}
+#overviewPage .rd-stat[aria-pressed=true]{border-color:var(--tp-primary);box-shadow:inset 0 0 0 1px var(--tp-primary)}
+#overviewPage .rd-panel{margin-top:12px;padding:16px}
+#overviewPage .overview-task{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--tp-border)}
+#overviewPage .overview-task:last-child{border-bottom:0;padding-bottom:0}
+#overviewPage .overview-task>div{min-width:0}
+#overviewPage .overview-task strong,#overviewPage .overview-task small{display:block;overflow-wrap:anywhere}
+#overviewPage .overview-task strong{font-size:14px;line-height:1.45}
+#overviewPage .overview-task small{font-size:13px;line-height:1.45;color:var(--tp-muted);margin-top:4px}
+#overviewPage button{min-height:44px}
+#overviewPage .overview-task>button{max-width:100%;min-width:100px;font-size:14px;line-height:1.4;align-self:center}
+#overviewPage .overview-progress{height:10px;border-radius:6px;background:var(--tp-primary-soft);overflow:hidden}
+#overviewPage .overview-progress>span{display:block;height:100%;background:var(--tp-primary)}
+#overviewPage .overview-completion>summary,#overviewPage .overview-data-details>summary{display:flex;align-items:center;min-height:44px;gap:8px;cursor:pointer;font-size:14px;font-weight:600}
+#overviewPage .overview-completion>summary::before,#overviewPage .overview-data-details>summary::before{content:'+';font-size:18px}
+#overviewPage .overview-completion[open]>summary::before,#overviewPage .overview-data-details[open]>summary::before{content:'−'}
+#overviewPage .overview-data-details{margin-top:8px;color:var(--tp-muted)}
+#overviewPage .overview-data-details .rd-data-note{margin:0 0 12px;font-size:13px}
+@media screen and (max-width:560px){
+ #overviewPage #overviewScope{flex:1 1 100%}
+ #overviewPage #overviewScope.overview-scope-static{min-height:24px}
+ #overviewPage #overviewPeriod{flex:1 1 auto}
+ #overviewPage .overview-toolbar .report-audience>button,#overviewPage .overview-toolbar .report-visual-tabs>button{font-size:13px;padding:9px 10px}
+ #overviewPage .rd-stat{min-height:72px;padding:10px;gap:2px 6px}
+ #overviewPage .rd-stat strong{font-size:26px}
+ #overviewPage .rd-panel{padding:12px}
+ #overviewPage .overview-task{grid-template-columns:minmax(0,1fr);gap:10px}
+ #overviewPage .overview-task>button{width:100%;justify-self:stretch}
+}

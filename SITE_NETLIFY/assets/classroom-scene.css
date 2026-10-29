@@ -123,12 +123,10 @@
  #appView #seatingEditor .seating-view-tools{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:4px 0 10px}
  #appView .seating-view-tools p{margin:0;font-size:13px;line-height:1.5;color:var(--tp-muted);flex:1;min-width:0}
  #appView .seating-view-tools button{flex:none;min-height:44px;padding:8px 12px}
- #appView #seatingViewport{height:clamp(280px,calc(100dvh - 400px),680px)}
  #appView #seatingFloor{align-items:end}
  #appView #seatingViewport .group{padding:8px}
 }
 @media screen and (max-width:700px){
- #appView #seatingViewport{height:clamp(250px,calc(100dvh - 510px),480px)}
  #appView .seating-view-tools button{font-size:13px;padding-inline:10px}
 }
 @media print{.seating-view-tools{display:none!important}}

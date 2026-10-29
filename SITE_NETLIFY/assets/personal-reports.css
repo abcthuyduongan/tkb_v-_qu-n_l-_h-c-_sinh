@@ -1,13 +1,55 @@
-@media screen{
- .personal-report-heading h2{margin:0;font-size:20px}.personal-report-heading p{font-size:13px;line-height:1.5;color:var(--tp-muted)}
- .personal-report-controls{display:flex;align-items:end;flex-wrap:wrap;gap:8px;margin:12px 0}.personal-report-controls label{margin:0;flex:1 1 180px;min-width:0}.personal-report-controls button{min-height:44px}.personal-report-controls input{width:100%;min-height:44px;box-sizing:border-box}
- .personal-report-filters{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:10px;align-items:end}.personal-report-filters label{margin:0;min-width:0}.personal-report-filters select{width:100%;min-width:0;min-height:44px}.personal-report-views{display:flex;gap:6px;flex-wrap:wrap}.personal-report-views button{min-height:44px}.personal-report-views button[aria-pressed=true]{background:var(--tp-primary);color:white;border-color:var(--tp-primary)}
- .personal-week-scroll{overflow:auto;max-width:100%;border:1px solid var(--tp-border);border-radius:12px}.personal-week-scroll:focus-visible{outline:2px solid var(--tp-primary);outline-offset:3px}.personal-week-table{border-collapse:collapse;width:100%;min-width:900px}.personal-week-table caption{text-align:left;padding:10px;font-weight:600}.personal-week-table th,.personal-week-table td{border:1px solid var(--tp-border);padding:7px;text-align:left;vertical-align:top}.personal-week-table thead th{background:var(--tp-surface-subtle);font-size:13px}.personal-week-table th small{display:block;font-weight:400}.personal-week-table th:first-child{width:42px}.personal-week-table td{min-width:130px}
- .personal-lesson{display:flex;flex-direction:column;gap:5px;width:100%;min-height:80px;padding:10px;margin:0 0 6px;border:1px solid var(--tp-border);border-radius:8px;text-align:left;background:var(--tp-surface);color:var(--tp-text);font:inherit;box-sizing:border-box}.personal-lesson strong{font-size:13px;line-height:1.4}.personal-lesson span,.personal-lesson small{font-size:12px;line-height:1.4}.personal-lesson small{color:var(--tp-muted)}button.personal-lesson{cursor:pointer}button.personal-lesson:hover{border-color:var(--tp-primary)}.personal-lesson.confirmed{border-left:4px solid #278355}.personal-lesson.pending{border-left:4px solid #c99524}.personal-lesson.scheduled{border-style:dashed;background:var(--tp-surface-subtle)}
- .personal-class-group{padding:12px 0;border-bottom:1px solid var(--tp-border)}.personal-class-group h3{font-size:16px;margin:0 0 10px}.personal-class-lessons{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px}.personal-class-lessons article>p{font-size:13px;color:var(--tp-muted);margin:0 0 6px}.personal-report-empty{padding:20px;border:1px solid var(--tp-border);border-radius:12px;color:var(--tp-muted);line-height:1.6}
+/* A compact weekly workspace; only the timetable scrolls on narrow screens. */
+@media screen {
+ .personal-report{min-width:0}
+ .personal-report-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:14px 0 10px}
+ .personal-report-heading h2{margin:0;font-size:18px;line-height:1.4}.personal-report-heading p{margin:3px 0 0;font-size:12px;line-height:1.45;color:var(--tp-muted)}
+ .personal-report-heading>button{flex:none;min-height:44px}
+ .personal-report-controls{display:flex;align-items:end;flex-wrap:wrap;gap:10px;margin:8px 0}
+ .personal-report-controls .personal-week-picker{margin:0;flex:0 1 180px;min-width:150px;font-size:12px;color:var(--tp-muted)}
+ .personal-report-controls input{display:block;width:100%;min-height:44px;max-height:48px;padding:8px 10px;border:1px solid var(--tp-border-strong);background:var(--tp-surface);color:var(--tp-text);font:inherit;font-size:15px;box-sizing:border-box}
+ .personal-week-nav,.personal-report-views{display:flex;align-items:stretch;gap:6px;flex:none;min-width:0}
+ .personal-week-nav button,.personal-report-views button{min-height:44px;padding:8px 12px;font-size:13px;white-space:nowrap}
+ .personal-week-nav button:first-child,.personal-week-nav button:last-child{width:44px;padding:8px}
+ .personal-report-views{margin-left:auto;gap:0;border:1px solid var(--tp-border);border-radius:8px;overflow:hidden}
+ .personal-report-views button{border:0!important;border-radius:0!important;margin:0!important}
+ .personal-report-views button[aria-pressed=true]{background:var(--tp-primary);color:#fff}
+ .personal-report-filters{display:grid;grid-template-columns:repeat(2,minmax(0,220px));gap:10px;margin:8px 0}
+ .personal-report-filters label{margin:0;min-width:0;font-size:12px;color:var(--tp-muted)}
+ .personal-report-filters select{display:block;width:100%;min-width:0;min-height:44px;padding:8px 10px;font-size:14px;border:1px solid var(--tp-border-strong);background:var(--tp-surface);color:var(--tp-text)}
+ #personalReportState{font-size:12px;margin:8px 0;line-height:1.5}
+ #personalReportState.personal-state-quiet{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+ .personal-report-source{margin:6px 0 10px;font-size:12px;color:var(--tp-muted)}
+ .personal-report-source>summary{cursor:pointer;width:max-content;max-width:100%;padding:6px 0;min-height:0;font-weight:400}
+ .personal-report-source p{margin:4px 0 8px;line-height:1.55;max-width:90ch}
+ .personal-week-hint{font-size:11px;color:var(--tp-muted);margin:0 0 6px}.personal-week-hint[hidden]{display:none}
+ .personal-week-scroll{overflow:auto;max-width:100%;border:1px solid var(--tp-border);border-radius:10px;scrollbar-width:thin;isolation:isolate}
+ .personal-week-scroll:focus-visible{outline:2px solid var(--tp-primary);outline-offset:3px}
+ .personal-week-table{border-collapse:separate;border-spacing:0;table-layout:fixed;width:100%;min-width:860px}
+ .personal-week-table caption{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+ .personal-week-table th,.personal-week-table td{border-right:1px solid var(--tp-border);border-bottom:1px solid var(--tp-border);padding:7px;text-align:left;vertical-align:top}
+ .personal-week-table tr>:last-child{border-right:0}.personal-week-table tbody tr:last-child>*{border-bottom:0}
+ .personal-week-table thead th{position:sticky;top:0;z-index:2;background:var(--tp-surface-subtle);font-size:13px}
+ .personal-week-table th small{display:block;font-size:11px;font-weight:400;color:var(--tp-muted);margin-top:3px}
+ .personal-week-table th:first-child{position:sticky;left:0;width:42px;z-index:1;background:var(--tp-surface-subtle);text-align:center;font-size:13px}
+ .personal-week-table thead th:first-child{z-index:3}
+ .personal-week-table td:empty{height:28px}
+ .personal-lesson{display:flex;flex-direction:column;gap:4px;width:100%;min-height:68px;padding:8px;margin:0 0 5px;border:1px solid var(--tp-border);border-radius:7px;text-align:left;background:var(--tp-surface);color:var(--tp-text);font:inherit;box-sizing:border-box;overflow:hidden}
+ .personal-lesson:last-child{margin-bottom:0}.personal-lesson strong{font-size:13px;line-height:1.35}
+ .personal-lesson-status{font-size:11px;line-height:1.35;color:var(--tp-muted)}
+ .personal-lesson .personal-ppct{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:11px;line-height:1.35;color:var(--tp-muted)}
+ button.personal-lesson{cursor:pointer}button.personal-lesson:hover{border-color:var(--tp-primary)}
+ .personal-lesson.confirmed{border-left:3px solid #278355}.personal-lesson.pending{border-left:3px solid #c99524}.personal-lesson.scheduled{border-style:dashed;background:var(--tp-surface-subtle)}
+ .personal-class-group{padding:12px 0;border-bottom:1px solid var(--tp-border)}.personal-class-group h3{font-size:15px;margin:0 0 8px}
+ .personal-class-lessons{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:10px}.personal-class-lessons article>p{font-size:12px;color:var(--tp-muted);margin:0 0 5px}
+ .personal-report-empty{padding:18px;border:1px solid var(--tp-border);border-radius:10px;color:var(--tp-muted);line-height:1.6;font-size:14px}
 }
-@media screen and (max-width:700px){.personal-report-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.personal-report-views{grid-column:1/-1}.personal-report-views button{flex:1}.personal-report-controls button{font-size:12px;padding:8px}.personal-report-controls label{flex-basis:100%}}
-@media print{.personal-report-controls,.personal-report-filters{display:none!important}.personal-week-scroll{overflow:visible}.personal-week-table{min-width:0}.personal-lesson{break-inside:avoid}}
-
+@media screen and (max-width:700px){
+ .personal-report-heading{margin-top:10px}.personal-report-heading h2{font-size:16px}.personal-report-heading p{max-width:24ch}
+ .personal-report-controls{gap:8px}.personal-report-controls .personal-week-picker{flex:1 1 150px;max-width:210px}
+ .personal-week-nav{margin-left:auto}.personal-week-nav button{font-size:12px;padding:8px}
+ .personal-report-views{flex:1 1 100%;margin-left:0}.personal-report-views button{flex:1}
+ .personal-report-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.personal-report-source{margin-bottom:8px}
+}
+@media print{.personal-report-controls,.personal-report-filters,.personal-report-heading>button,.personal-report-source,#personalReportState{display:none!important}.personal-week-scroll{overflow:visible}.personal-week-table{min-width:0}.personal-lesson{break-inside:avoid}}
 #classReportArea[hidden],#personalReportMount[hidden]{display:none!important}body:has(#personalReportMount:not([hidden])) #supportSection{display:none!important}
 #reportWorkScope{margin:12px 0;flex-wrap:wrap}#reportWorkScope button{min-height:44px}

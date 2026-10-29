@@ -27,7 +27,9 @@
  }
  function mount(container,data={},options={}){
   container.replaceChildren();const m=model(data);if(!m)return;
-  let filter='concern',limit=12;
+  let filter='concern',limit=12,teacherFilter='',subjectFilter='',activeDay=null;
+  const teacherName=s=>String(s.teacher_name||options.teacherNames?.[s.teacher_id]||'Chưa xác định giáo viên'),teacherKey=s=>s.teacher_name||options.teacherNames?.[s.teacher_id]?(s.teacher_id?'id:'+s.teacher_id:'name:'+teacherName(s)):'unknown';
+  const teachers=[...new Map(m.sessions.map(s=>[teacherKey(s),teacherName(s)])).entries()].sort((a,b)=>a[1].localeCompare(b[1],'vi')),subjects=[...new Set(m.sessions.map(s=>String(s.subject||'')).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'vi'));
   const icon=name=>'<svg class="ui-icon" aria-hidden="true"><use href="#i-'+name+'"/></svg>';
   const total=m.counts.positive+m.counts.concern+m.counts.health,pct=total?m.counts.positive/total*100:0,end=total?(m.counts.positive+m.counts.concern)/total*100:0;
   const summaries=[['sessions','Số tiết đã mở',m.sessions.length,'tiết có trên ứng dụng','calendar'],['attendance','Tỷ lệ có mặt',m.rate===null?'—':m.rate.toFixed(1).replace('.',',')+'%','trên lượt đã điểm danh','check'],['positive','Ghi nhận tích cực',m.counts.positive,'lượt trong kỳ','star'],['concern','Học sinh cần hỗ trợ',m.people.filter(p=>p.counts.concern>0).length,'em · không đếm trùng','users']];
@@ -46,10 +48,12 @@
   const detail=container.querySelector('.rd-details');
   function table(headers,records){return '<div class="tableScroller"><table class="reportTable"><thead><tr>'+headers.map(x=>'<th scope="col">'+esc(x)+'</th>').join('')+'</tr></thead><tbody>'+records.map(row=>'<tr>'+row.map(c=>'<td>'+c+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>';}
   function show(dayIndex=null){
+   activeDay=dayIndex;
    container.querySelectorAll('.rd-filters button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.rdFilter===filter)));
    if(dayIndex!==null||filter==='sessions'){
-    const g=dayIndex!==null?chart[dayIndex]:null,lessons=m.sessions.filter(s=>!g||g.dates.includes(String(s.lesson_date).slice(0,10)));
-    detail.innerHTML='<h3>'+(g?'Điểm danh · '+esc(barLabel(g.key)):'Các tiết có trên ứng dụng')+'</h3>'+table(['Ngày','Lớp','Tiết','Môn','Lượt đã điểm danh','Chờ xác nhận'],lessons.slice(0,limit).map(s=>[esc(s.lesson_date),esc(s.class_code),esc(s.period_no),esc(s.subject),fmt(m.details?rows(data.attendance).filter(a=>String(a.session_id)===String(s.id)).length:statuses.reduce((v,k)=>v+n(s[k]),0)),(()=>{const state=rows(data.completion).find(r=>r.id===s.id);return state?state.expected===null?'Chưa xác định':fmt(state.missing)+' học sinh':'';})()]))+'<p class="rd-unit">'+lessons.length+' tiết. Số tiết đã mở không phải số tiết phải học.</p>'+(lessons.length>limit?'<button type="button" data-rd-more="'+(dayIndex??'sessions')+'">Xem thêm</button>':'');return;
+    const g=dayIndex!==null?chart[dayIndex]:null,lessons=m.sessions.filter(s=>(!g||g.dates.includes(String(s.lesson_date).slice(0,10)))&&(!teacherFilter||teacherKey(s)===teacherFilter)&&(!subjectFilter||s.subject===subjectFilter));
+    const filters='<div class="rd-lesson-filter-box"><h4>Lọc danh sách tiết</h4><div class="rd-lesson-filters" role="group" aria-label="Lọc danh sách tiết"><label>Giáo viên<select data-rd-teacher><option value="">Tất cả giáo viên</option>'+teachers.map(([key,name])=>'<option value="'+esc(key)+'"'+(key===teacherFilter?' selected':'')+'>'+esc(name)+'</option>').join('')+'</select></label><label>Môn<select data-rd-subject><option value="">Tất cả môn</option>'+subjects.map(subject=>'<option value="'+esc(subject)+'"'+(subject===subjectFilter?' selected':'')+'>'+esc(subject)+'</option>').join('')+'</select></label></div><p class="rd-unit">Bộ lọc áp dụng cho danh sách tiết đang xem. Chỉ số học sinh và tệp xuất giữ phạm vi lớp, kỳ đã chọn.</p></div>';
+    detail.innerHTML='<h3>'+(g?'Điểm danh · '+esc(barLabel(g.key)):'Các tiết có trên ứng dụng')+'</h3>'+filters+table(['Ngày','Lớp','Tiết','Môn','Giáo viên','Lượt đã điểm danh','Chờ xác nhận'],lessons.slice(0,limit).map(s=>[esc(s.lesson_date),esc(s.class_code),esc(s.period_no),esc(s.subject),esc(teacherName(s)),fmt(m.details?rows(data.attendance).filter(a=>String(a.session_id)===String(s.id)).length:statuses.reduce((v,k)=>v+n(s[k]),0)),(()=>{const state=rows(data.completion).find(r=>r.id===s.id);return state?state.expected===null?'Chưa xác định':fmt(state.missing)+' học sinh':'';})()]))+'<p class="rd-unit rd-lesson-count">'+lessons.length+' tiết phù hợp. Số tiết đã mở không phải số tiết phải học.</p>'+(lessons.length>limit?'<button type="button" data-rd-more="'+(dayIndex??'sessions')+'">Xem thêm</button>':'');return;
    }
    const key=filter==='attendance'?'absences':filter,labels={absences:'Học sinh có vắng / có phép',late:'Học sinh đi muộn',positive:'Ghi nhận tích cực',concern:'Học sinh cần hỗ trợ',health:'Ghi nhận sức khỏe'};
    const count=p=>key==='absences'?p.counts.absent+p.counts.excused:p.counts[key],list=m.people.filter(p=>count(p)>0);
@@ -60,7 +64,7 @@
    else if(b.dataset.rdDay!==undefined){limit=12;show(Number(b.dataset.rdDay));}
    else if(b.dataset.rdMore){limit+=12;show(/^\d+$/.test(b.dataset.rdMore)?Number(b.dataset.rdMore):null);}
    else if(b.dataset.rdClass)options.onClass?.(b.dataset.rdClass);
-  };show();
+  };container.onchange=e=>{const select=e.target.closest('select');if(!select)return;if(select.hasAttribute('data-rd-teacher'))teacherFilter=select.value;else if(select.hasAttribute('data-rd-subject'))subjectFilter=select.value;else return;limit=12;const type=select.hasAttribute('data-rd-teacher')?'[data-rd-teacher]':'[data-rd-subject]';show(activeDay);detail.querySelector(type)?.focus({preventScroll:true});};show();
  }
  root.TranPhuReportDashboard=Object.freeze({model,mount});
 })(typeof window==='undefined'?globalThis:window);
